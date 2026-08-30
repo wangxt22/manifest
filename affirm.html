@@ -82,9 +82,6 @@ body{
 }
 .stat-line.show{display:flex}
 .stat-line .dot{width:3px;height:3px;background:var(--rose);border-radius:50%;flex-shrink:0}
-.stat-line [contenteditable]{outline:none;border-bottom:.5px dashed transparent;padding:1px 3px;transition:border-color .2s;font-weight:600}
-.stat-line [contenteditable]:hover{border-bottom-color:var(--rose)}
-.stat-line [contenteditable]:focus{border-bottom-color:var(--rose-deep);background:rgba(255,255,255,.5);border-radius:3px}
 
 /* ===== Vision board ===== */
 .board{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:2px 2px 12px}
@@ -486,21 +483,120 @@ body{
 </div>
 </div>
 <script>
+/* ===== 本地持久化 =====
+   刷新、以及 iOS PWA 被系统回收内存后重开，都要能恢复。
+   localStorage 在 iOS 上只有 ~5MB，所以图片一律压缩后再存（见 shrinkImage）。 */
+const LS_KEY = 'reverie.affirm.v1';
+let lsBlocked = false;
+function lsSave(){
+  if(lsBlocked) return;
+  try{
+    localStorage.setItem(LS_KEY, JSON.stringify(dumpState()));
+  }catch(e){
+    /* 存满了。别反复弹，冷却 3 秒 */
+    lsBlocked = true;
+    showToast('存不下了，图片太多。删掉几张再试');
+    setTimeout(()=>{ lsBlocked = false; }, 3000);
+  }
+}
+function lsLoad(){
+  let d;
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if(!raw) return;
+    d = JSON.parse(raw);
+  }catch(e){ return; }   /* 数据坏了就当没存过，不能让整页挂掉 */
+  if(!d || typeof d !== 'object') return;
+  try{ applyState(d); }catch(e){}
+}
+
+/* 图片存前压到最长边 1080、WebP 质量 .82。
+   相册原图 DataURL 动辄好几 MB，不压必然爆 localStorage。 */
+function shrinkImage(dataURL, cb, maxPx, q){
+  maxPx = maxPx || 1080; q = q || .82;
+  const img = new Image();
+  img.onload = ()=>{
+    let w = img.width, h = img.height;
+    const scale = Math.min(1, maxPx / Math.max(w, h));
+    w = Math.max(1, Math.round(w*scale)); h = Math.max(1, Math.round(h*scale));
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    c.getContext('2d').drawImage(img, 0, 0, w, h);
+    let out = null;
+    try{ out = c.toDataURL('image/webp', q); }catch(e){}
+    if(!out || out.indexOf('data:image/webp') !== 0){
+      try{ out = c.toDataURL('image/jpeg', q); }catch(e){ out = null; }
+    }
+    cb(out && out.length < dataURL.length ? out : dataURL);
+  };
+  img.onerror = ()=>cb(dataURL);
+  img.src = dataURL;
+}
+
+/* 存的就是这三样：板块、当前清单、停在哪个 tab */
+function dumpState(){
+  return { boards: BOARDS, recite: reciteList, tab: currentTab };
+}
+function applyState(d){
+  /* 合并而不是整体替换：BOARDS 是 const，而且以后加字段时旧存档不该把新板块弄丢。
+     这个页面没有删板块的功能，所以不用管"删过的板块别复活"。 */
+  if(d.boards && typeof d.boards === 'object'){
+    Object.keys(d.boards).forEach(k=>{ BOARDS[k] = d.boards[k]; });
+  }
+  if(Array.isArray(d.recite)) reciteList = d.recite;
+  if(typeof d.tab === 'string') currentTab = d.tab;
+}
+
+/* ===== 念诵时长统计（跨页面共享，me.html 会读） ===== */
+const STATS_KEY = 'reverie.stats.v1';
+/* 结构：
+   {
+     byBoard: { [boardKey]: { name: '财富金钱', mins: 135 } },
+     byDay:   { '2026-08-31': 42 }                             // 分钟，整数
+   }
+   沉浸念（多板块混念）记到 byBoard 的 '__immerse__' 下，name 用 '沉浸念'。 */
+function statsRead(){
+  try{
+    const d = JSON.parse(localStorage.getItem(STATS_KEY) || '{}');
+    return { byBoard: d.byBoard || {}, byDay: d.byDay || {} };
+  }catch(e){ return { byBoard:{}, byDay:{} }; }
+}
+function statsAdd(boardKey, boardName, mins){
+  mins = Math.round(mins);
+  if(!(mins > 0)) return;
+  const s = statsRead();
+  const b = s.byBoard[boardKey] || { name: boardName, mins: 0 };
+  b.name = boardName; b.mins += mins;
+  s.byBoard[boardKey] = b;
+  const t = new Date();
+  const k = t.getFullYear() + '-' + String(t.getMonth()+1).padStart(2,'0') + '-' + String(t.getDate()).padStart(2,'0');
+  s.byDay[k] = (s.byDay[k] || 0) + mins;
+  try{ localStorage.setItem(STATS_KEY, JSON.stringify(s)); }catch(e){}
+}
+/* 135 → '2h 15m'，45 → '45m'，没念过就是 '0m' */
+function fmtMins(m){
+  m = Math.max(0, Math.round(m || 0));
+  const h = Math.floor(m/60), r = m%60;
+  if(h > 0) return h + 'h ' + String(r).padStart(2,'0') + 'm';
+  return r + 'm';
+}
+
 /* ========== Data ========== */
+let currentTab = 'immerse';
 const BOARDS = {
-  wealth:{name:'财富金钱',color:'g1',stats:{total:'2h 15m',week:'45m'},
+  wealth:{name:'财富金钱',color:'g1',
     lines:['我是财富的磁石','钱轻松地流向我','我值得所有的丰盛','我拥有无限的丰盛','金钱是我的好朋友','我配得起富足的人生','丰盛从四面八方涌向我','我是自己财富的创造者'],
     images:[null,null,null,null,null,null]},
-  career:{name:'事业职场',color:'g2',stats:{total:'1h 30m',week:'20m'},
+  career:{name:'事业职场',color:'g2',
     lines:['我在事业中稳步向上','我的价值被完全看见','机会正在向我走来','我的才华被这个世界需要','每一步都在向理想靠近','我配得上想要的一切'],
     images:[null,null,null,null,null,null]},
-  love:{name:'爱情关系',color:'g6',stats:{total:'50m',week:'10m'},
+  love:{name:'爱情关系',color:'g6',
     lines:['我值得被温柔地爱着','爱正在向我走来','我配得上双向奔赴的爱','关系中我可以做自己','我心里的爱源源不断'],
     images:[null,null,null,null,null,null]},
-  health:{name:'健康身体',color:'g4',stats:{total:'40m',week:'5m'},
+  health:{name:'健康身体',color:'g4',
     lines:['我的身体每天都在变好','我爱我自己的每一寸','我值得被好好照顾','我的身心自然平衡'],
     images:[null,null,null,null,null,null]},
-  self:{name:'自我内在',color:'g5',stats:{total:'1h 05m',week:'25m'},
+  self:{name:'自我内在',color:'g5',
     lines:['我允许自己慢慢来','我完整地爱着自己','我值得温柔地对待自己','我不需要证明什么','我的存在本身就是意义'],
     images:[null,null,null,null,null,null]}
 };
@@ -602,6 +698,7 @@ document.getElementById('opDelete').addEventListener('click',()=>{
   if(BOARDS[key] && BOARDS[key].images) BOARDS[key].images[idx] = null;
   closeImgSheet();
   buildBoardTiles(currentTab);
+  lsSave();
   showToast('已移除');
 });
 document.getElementById('opCancel').addEventListener('click',closeImgSheet);
@@ -611,42 +708,47 @@ fileInput.addEventListener('change',(e)=>{
   const {key,idx} = imgSheetCtx;
   const reader = new FileReader();
   reader.onload = (ev)=>{
-    if(!BOARDS[key].images) BOARDS[key].images = [null,null,null,null,null,null];
-    BOARDS[key].images[idx] = ev.target.result;
     closeImgSheet();
-    buildBoardTiles(currentTab);
-    showToast('已添加');
+    /* 原图直接存必爆 5MB，先压 */
+    shrinkImage(ev.target.result, (small)=>{
+      if(!BOARDS[key].images) BOARDS[key].images = [null,null,null,null,null,null];
+      BOARDS[key].images[idx] = small;
+      buildBoardTiles(currentTab);
+      lsSave();
+      showToast('已添加');
+    });
   };
   reader.readAsDataURL(file);
   fileInput.value = '';
 });
 
 /* ========== Tab switching ========== */
-let currentTab = 'immerse';
+/* 统计行只画这一处，念完一轮也要重画，所以单独拆出来 */
+function paintStatLine(){
+  const statLine = document.getElementById('statLine');
+  const statText = document.getElementById('statText');
+  const b = BOARDS[currentTab];
+  if(!b){ statLine.classList.remove('show'); return; }
+  statLine.classList.add('show');
+  /* 真实累计，从 statsRead() 拿。没念过就是 0m —— 以前这里是写死的假数字，
+     还挂了 contenteditable 让人手改，那更假 */
+  const mins = (statsRead().byBoard[currentTab] || {}).mins || 0;
+  statText.textContent = b.name + ' · 累计 ' + fmtMins(mins);
+}
 function switchTab(tab){
   currentTab = tab;
   document.querySelectorAll('.tab-pill').forEach(p=>{
     p.classList.toggle('on', p.dataset.tab===tab);
   });
-  const statLine = document.getElementById('statLine');
-  const statText = document.getElementById('statText');
   const listTitle = document.getElementById('listTitle');
   const addBtn = document.getElementById('addBtn');
-
-  if(BOARDS[tab]){
-    const b = BOARDS[tab];
-    statLine.classList.add('show');
-    statText.innerHTML = `${b.name} · 累计 <span contenteditable="true">${b.stats.total}</span> · 本周 <span contenteditable="true">${b.stats.week}</span>`;
-    listTitle.textContent = b.name + '肯定语';
-    addBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg> 添加句子';
-  } else {
-    statLine.classList.remove('show');
-    listTitle.textContent = '念诵清单';
-    addBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg> 添加句子';
-  }
+  paintStatLine();
+  listTitle.textContent = BOARDS[tab] ? BOARDS[tab].name + '肯定语' : '念诵清单';
+  addBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg> 添加句子';
   buildBoardTiles(tab);
   renderList();
   resetClock();
+  lsSave();
 }
 
 /* ========== List rendering ========== */
@@ -681,6 +783,7 @@ function renderList(){
       else if(BOARDS[currentTab]){ BOARDS[currentTab].lines.splice(i,1); }
       renderList();
       if(currentTab==='immerse') buildBoardTiles('immerse');
+      lsSave();
     });
   });
 }
@@ -782,6 +885,7 @@ function applyDrawer(){
   renderList();
   buildBoardTiles('immerse');
   closeDrawer();
+  lsSave();
   showToast('清单已更新');
 }
 
@@ -806,6 +910,7 @@ function applyDialog(){
   if(BOARDS[currentTab]){
     BOARDS[currentTab].lines.push(v);
     renderList();
+    lsSave();
     showToast('已添加');
   }
   closeDialog();
@@ -933,13 +1038,18 @@ function resumeClock(){
   paintCenterRunning();
 }
 function finishClock(auto){
-  const secs = clockMode==='up' ? elapsedSec : totalSec;
+  /* 正计时按实际走过的秒数，倒计时走完了就是整段；提前长按结束也走这里，
+     用 elapsedSec，不能拿 totalSec 当真实时长 */
+  const secs = clockMode==='up' ? elapsedSec : (auto ? totalSec : elapsedSec);
   const mins = Math.floor(secs/60);
   const rem = secs%60;
   const label = mins>0 ? (mins + '分' + (rem?' '+rem+'秒':'')) : (rem+'秒');
   const catName = BOARDS[currentTab]?.name || '沉浸念';
+  /* 真实累计写进跨页面的 stats。不满 1 分钟 statsAdd 自己会挡掉 */
+  statsAdd(BOARDS[currentTab] ? currentTab : '__immerse__', catName, secs/60);
   showToast(auto ? `完成 · 记录 ${label} → ${catName}` : `本次 ${label} 已记录 → ${catName}`);
   resetClock();
+  paintStatLine();
 }
 
 /* Click on ring: start / pause / resume */
@@ -1050,27 +1160,36 @@ function applyNewBoard(){
   BOARDS[key] = {
     name: v,
     color: palettes[Math.floor(Math.random()*palettes.length)],
-    stats: {total:'0m', week:'0m'},
     lines: [],
     images: [null,null,null,null,null,null]
   };
-  // Insert a new tab pill before the "+ 新建" pill
+  addBoardPill(key, v);
+  closeNewBoardDialog();
+  switchTab(key);   /* 里面已经 lsSave 了 */
+  showToast('已新建「' + v + '」');
+}
+/* 把一个板块塞成顶部胶囊，插在「+ 新建」前面。
+   新建时用，恢复存档时也用 —— 存档里的自定义板块 HTML 里没有对应胶囊 */
+function addBoardPill(key, name){
   const pill = document.createElement('div');
   pill.className = 'tab-pill';
   pill.dataset.tab = key;
-  pill.textContent = v;
+  pill.textContent = name;
   pill.addEventListener('click',()=>switchTab(key));
   document.getElementById('addTab').before(pill);
-  closeNewBoardDialog();
-  switchTab(key);
-  showToast('已新建「' + v + '」');
 }
 document.getElementById('nbCancel').addEventListener('click',closeNewBoardDialog);
 document.getElementById('nbOk').addEventListener('click',applyNewBoard);
 document.getElementById('nbInput').addEventListener('keydown',e=>{if(e.key==='Enter') applyNewBoard()});
 
 /* ========== Init ========== */
-switchTab('immerse');
+/* 先恢复存档再画第一帧，不然会先画假数据再闪一下 */
+lsLoad();
+/* 存档里的自定义板块，HTML 里没有胶囊，得补出来 */
+Object.keys(BOARDS).forEach(k=>{
+  if(!document.querySelector('.tab-pill[data-tab="'+k+'"]')) addBoardPill(k, BOARDS[k].name);
+});
+switchTab((BOARDS[currentTab] || currentTab === 'immerse') ? currentTab : 'immerse');
 </script>
 <script>
 /* PWA —— 装到桌面用。file:// 下不注册（协议不支持），只在 http/https 生效 */

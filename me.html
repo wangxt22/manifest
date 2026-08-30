@@ -128,6 +128,8 @@ body{
   box-shadow:inset 0 1px 0 rgba(255,255,255,.55);
 }
 .bd-time{font-family:var(--serif-en);font-weight:600;font-size:12px;color:var(--rose-deep);width:50px;text-align:right;flex-shrink:0;letter-spacing:.3px}
+/* 一条记录都没有的时候，别画一排贴地的假柱子 */
+.tr-empty{font-family:var(--serif-cn);font-size:12.5px;color:var(--t3);letter-spacing:.5px;padding:7px 0 5px}
 /* ===== Settings list ===== */
 .set{
   background:var(--surface);
@@ -286,7 +288,8 @@ body{
     </div>
     <div class="mi-bars" id="miBars"></div>
     <div class="mi-ax" id="miAx"></div>
-    <div class="bd-sp"></div>
+    <div class="tr-empty" id="trEmpty" style="display:none">还没有念诵记录</div>
+    <div class="bd-sp" id="bdSp"></div>
     <div id="boardList"></div>
   </div>
 
@@ -405,22 +408,102 @@ body{
 </div>
 
 <script>
-/* ========== Data（内存 · 未持久化） ========== */
+/* ===== 本地持久化 =====
+   刷新、以及 iOS PWA 被系统回收内存后重开，都要能恢复。
+   头像图一律压缩后再存（见 shrinkImage），localStorage 在 iOS 上只有 ~5MB。 */
+const LS_KEY = 'reverie.me.v1';
+let lsBlocked = false;
+function lsSave(){
+  if(lsBlocked) return;
+  try{
+    localStorage.setItem(LS_KEY, JSON.stringify(dumpState()));
+  }catch(e){
+    lsBlocked = true;
+    showToast('存不下了，换张小一点的图');
+    setTimeout(()=>{ lsBlocked = false; }, 3000);
+  }
+}
+function lsLoad(){
+  let d;
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if(!raw) return false;
+    d = JSON.parse(raw);
+  }catch(e){ return false; }
+  if(!d || typeof d !== 'object') return false;
+  try{ applyState(d); return true; }catch(e){ return false; }
+}
+
+/* 图片存前压到最长边 1080、WebP 质量 .82。
+   相册原图 DataURL 动辄好几 MB，不压必然爆 localStorage。 */
+function shrinkImage(dataURL, cb, maxPx, q){
+  maxPx = maxPx || 1080; q = q || .82;
+  const img = new Image();
+  img.onload = ()=>{
+    let w = img.width, h = img.height;
+    const scale = Math.min(1, maxPx / Math.max(w, h));
+    w = Math.max(1, Math.round(w*scale)); h = Math.max(1, Math.round(h*scale));
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    c.getContext('2d').drawImage(img, 0, 0, w, h);
+    let out = null;
+    try{ out = c.toDataURL('image/webp', q); }catch(e){}
+    if(!out || out.indexOf('data:image/webp') !== 0){
+      try{ out = c.toDataURL('image/jpeg', q); }catch(e){ out = null; }
+    }
+    cb(out && out.length < dataURL.length ? out : dataURL);
+  };
+  img.onerror = ()=>cb(dataURL);
+  img.src = dataURL;
+}
+
+/* ========== Data ========== */
 const WD = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-/* 近 7 天念诵分钟数，最后一个是今天 */
-const WEEK = [18, 32, 25, 0, 41, 27, 35];
-/* 板块累计 · 跟 affirm.html 的 BOARDS 对齐 */
-const BOARD_STATS = [
-  {name:'财富金钱', mins:135},
-  {name:'事业职场', mins:90},
-  {name:'爱情关系', mins:50},
-  {name:'健康身体', mins:40},
-  {name:'自我内在', mins:65}
-];
 /* 用户资料 */
 let ME = { name:'若愿', avatar:null };
 /* 账号 —— demo 阶段假的，接 Supabase 之前先把位子占对 */
 let ACC = { mail:null };
+
+function dumpState(){
+  return { me: ME, acc: ACC };
+}
+function applyState(d){
+  if(d.me && typeof d.me === 'object') ME = d.me;
+  if(d.acc && typeof d.acc === 'object') ACC = d.acc;
+}
+
+/* ===== 念诵时长统计（affirm.html 的钟表写，这里只读） ===== */
+const STATS_KEY = 'reverie.stats.v1';
+/* 结构：
+   {
+     byBoard: { [boardKey]: { name:'财富金钱', mins:135 } },   // 沉浸念记在 '__immerse__'，name 是 '沉浸念'
+     byDay:   { '2026-08-31': 42 }                            // 分钟，整数
+   } */
+function statsRead(){
+  try{
+    const d = JSON.parse(localStorage.getItem(STATS_KEY) || '{}');
+    return { byBoard: d.byBoard || {}, byDay: d.byDay || {} };
+  }catch(e){ return { byBoard:{}, byDay:{} }; }
+}
+function dayKey(t){
+  return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');
+}
+/* 近七日：从 byDay 里按真实日期取，最后一格是今天。没记录就是 0 */
+function weekMins(){
+  const byDay = statsRead().byDay;
+  const out = [];
+  for(let i=6;i>=0;i--){
+    const t = new Date(); t.setDate(t.getDate()-i);
+    out.push(byDay[dayKey(t)] || 0);
+  }
+  return out;
+}
+/* 板块累计 · 多的排前面 */
+function boardStats(){
+  return Object.values(statsRead().byBoard)
+    .filter(b=>b && b.mins > 0)
+    .sort((a,b)=>b.mins-a.mins);
+}
 
 /* ========== Helpers ========== */
 function fmtMin(m){
@@ -474,7 +557,21 @@ document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',
 function renderMini(){
   const bars = document.getElementById('miBars');
   const ax = document.getElementById('miAx');
+  const empty = document.getElementById('trEmpty');
   bars.innerHTML = ''; ax.innerHTML = '';
+  const WEEK = weekMins();
+  const total = WEEK.reduce((a,b)=>a+b,0);
+  /* 七天一条记录都没有：柱子全贴地既难看又莫名，直接换空态 */
+  if(total === 0){
+    bars.style.display = 'none';
+    ax.style.display = 'none';
+    empty.style.display = 'block';
+    document.getElementById('weekSum').textContent = '';
+    return;
+  }
+  bars.style.display = 'grid';
+  ax.style.display = 'grid';
+  empty.style.display = 'none';
   const max = Math.max(...WEEK, 1);
   const H = 40, todayIdx = WEEK.length - 1;
   const startWd = (new Date().getDay() - 6 + 14) % 7;
@@ -488,15 +585,24 @@ function renderMini(){
     if(i===todayIdx) d.className = 'today';
     ax.appendChild(d);
   });
-  document.getElementById('weekSum').textContent = fmtMin(WEEK.reduce((a,b)=>a+b,0));
+  document.getElementById('weekSum').textContent = fmtMin(total);
 }
 
 /* ========== 板块累计 ========== */
 function renderBoards(){
   const wrap = document.getElementById('boardList');
   wrap.innerHTML = '';
-  const max = Math.max(...BOARD_STATS.map(b=>b.mins), 1);
-  BOARD_STATS.forEach(b=>{
+  const list = boardStats();
+  if(!list.length){
+    /* 整张卡都空的时候，上面那句"还没有念诵记录"就够了，别再重复一遍 */
+    const bare = weekMins().every(v=>v===0);
+    document.getElementById('bdSp').style.display = bare ? 'none' : 'block';
+    wrap.innerHTML = bare ? '' : '<div class="tr-empty">还没有板块记录</div>';
+    return;
+  }
+  document.getElementById('bdSp').style.display = 'block';
+  const max = Math.max(...list.map(b=>b.mins), 1);
+  list.forEach(b=>{
     const pct = Math.max(Math.round(b.mins/max*100), 4);
     const row = document.createElement('div');
     row.className = 'bd-row';
@@ -526,13 +632,18 @@ avaInput.addEventListener('change',e=>{
   avaInput.value = '';
   if(!f) return;
   const r = new FileReader();
-  r.onload = ev=>{ ME.avatar = ev.target.result; paintAvatar(); showToast('头像换好了'); };
+  r.onload = ev=>{
+    /* 头像就 58px 显示，512 够用了，压小点省 localStorage */
+    shrinkImage(ev.target.result, out=>{
+      ME.avatar = out; paintAvatar(); lsSave(); showToast('头像换好了');
+    }, 512, .85);
+  };
   r.readAsDataURL(f);
 });
 document.getElementById('ava').addEventListener('click',()=>avaInput.click());
 document.getElementById('pfPick').addEventListener('click',()=>avaInput.click());
 document.getElementById('pfDrop').addEventListener('click',()=>{
-  ask('把头像换回玫瑰渐变？',()=>{ ME.avatar = null; paintAvatar(); showToast('头像已移除'); });
+  ask('把头像换回玫瑰渐变？',()=>{ ME.avatar = null; paintAvatar(); lsSave(); showToast('头像已移除'); });
 });
 
 /* 首页那个昵称直接改，回车即存 */
@@ -541,7 +652,7 @@ nick.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); ni
 nick.addEventListener('blur',()=>{
   const v = (nick.textContent||'').trim();
   if(!v){ paintName(); showToast('名字不能空着'); return; }
-  ME.name = v; paintName();
+  ME.name = v; paintName(); lsSave();
 });
 
 /* ========== 个人信息抽屉 ========== */
@@ -554,7 +665,7 @@ document.getElementById('pfAva').addEventListener('click',()=>avaInput.click());
 document.getElementById('pfOk').addEventListener('click',()=>{
   const v = document.getElementById('pfName').value.trim();
   if(!v){ showToast('名字不能空着'); return; }
-  ME.name = v; paintName(); sheetClose(); showToast('已保存');
+  ME.name = v; paintName(); lsSave(); sheetClose(); showToast('已保存');
 });
 /* ========== 账号 ==========
    demo 阶段全是假的，只把位子和流程占对。真接的时候换成 Supabase：
@@ -566,7 +677,7 @@ function renderAccount(){
     body.innerHTML = `
       <div class="ac-tip">登录后数据会同步到云端，换手机也在。</div>
       <button class="sh-ok" style="width:100%;padding:12px 0" data-ac="login">邮箱登录 / 注册</button>
-      <div class="ac-note">现在写的东西只存在这台手机上，刷新就没了。</div>
+      <div class="ac-note">现在写的东西只存在这台手机上。</div>
       <div style="height:6px"></div>`;
   } else {
     body.innerHTML = `
@@ -584,12 +695,12 @@ function renderAccount(){
       else if(a==='pwd'){ showToast('接后端后走邮件重置'); }
       else if(a==='out'){
         ask('退出登录？本机的数据还在。',()=>{
-          ACC.mail = null; paintAccount(); renderAccount(); sheetClose(); showToast('已退出');
+          ACC.mail = null; paintAccount(); renderAccount(); lsSave(); sheetClose(); showToast('已退出');
         });
       }
       else if(a==='kill'){
         ask('注销账号？云端所有内容一起删掉，找不回来。',()=>{
-          ACC.mail = null; paintAccount(); renderAccount(); sheetClose(); showToast('已注销');
+          ACC.mail = null; paintAccount(); renderAccount(); lsSave(); sheetClose(); showToast('已注销');
         });
       }
     });
@@ -624,7 +735,7 @@ document.getElementById('lgOk').addEventListener('click',()=>{
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(m)){ showToast('邮箱格式不对'); return; }
   if(p.length < 6){ showToast('密码至少 6 位'); return; }
   ACC.mail = m;
-  paintAccount(); renderAccount();
+  paintAccount(); renderAccount(); lsSave();
   document.getElementById('lgPwd').value = '';
   sheetOpen('shAccount');
   showToast(lgMode==='up' ? '注册好了（demo 假的）' : '登录成功（demo 假的）');
@@ -632,11 +743,26 @@ document.getElementById('lgOk').addEventListener('click',()=>{
 
 /* ========== 导出备份 / 关于 ========== */
 document.getElementById('rowExport').addEventListener('click',()=>{
-  const data = { me:ME, week:WEEK, boards:BOARD_STATS, exportedAt:new Date().toISOString() };
+  /* 除了看得懂的统计，把 reverie.* 的原始存档也一并带上，换手机能整个搬走 */
+  const raw = {};
+  for(let i=0;i<localStorage.length;i++){
+    const k = localStorage.key(i);
+    if(k && k.indexOf('reverie.') === 0) raw[k] = localStorage.getItem(k);
+  }
+  const s = statsRead();
+  const data = {
+    me: ME,
+    acc: ACC,
+    week: weekMins(),
+    boards: boardStats(),
+    byDay: s.byDay,
+    raw: raw,
+    exportedAt: new Date().toISOString()
+  };
   const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'reverie-backup.json';
+  a.download = 'reverie-backup-' + dayKey(new Date()) + '.json';
   a.click();
   setTimeout(()=>URL.revokeObjectURL(a.href), 1500);
   showToast('备份已导出');
@@ -646,12 +772,19 @@ document.getElementById('rowAbout').addEventListener('click',()=>{
 });
 
 /* ========== Init ========== */
+lsLoad();
 renderMini();
 renderBoards();
 paintAvatar();
 paintName();
 paintAccount();
 paintLogin();
+
+/* 从肯定语那页念完回来，图表得跟着刷新（bfcache 里回来不会重新执行上面那些） */
+window.addEventListener('pageshow',e=>{ if(e.persisted){ renderMini(); renderBoards(); } });
+document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden){ renderMini(); renderBoards(); }
+});
 </script>
 <script>
 /* PWA —— 装到桌面用。file:// 下不注册（协议不支持），只在 http/https 生效 */

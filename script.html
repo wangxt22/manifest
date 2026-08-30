@@ -267,7 +267,6 @@ body{
 }
 .sc.new .ic svg{width:21px;height:21px;stroke:#fff;stroke-width:2.1;fill:none;stroke-linecap:round}
 .sc.new .tt{font-family:var(--serif-cn);font-weight:600;font-size:14px;color:var(--t1);margin-top:12px;text-align:center}
-.sc.new .ss{font-size:11px;color:var(--t3);margin-top:5px;text-align:center;line-height:1.6}
 .grid-empty{
   grid-column:1 / -1;text-align:center;padding:30px 20px;
   font-family:var(--serif-cn);font-size:13px;color:var(--t3);line-height:1.9;
@@ -726,6 +725,56 @@ body{
 </div>
 
 <script>
+/* ===== 本地持久化 =====
+   刷新、以及 iOS PWA 被系统回收内存后重开，都要能恢复。
+   localStorage 在 iOS 上只有 ~5MB，所以封面一律压缩后再存（见 shrinkImage）。 */
+const LS_KEY = 'reverie.script.v1';
+let lsBlocked = false;
+function lsSave(){
+  if(lsBlocked) return;
+  try{
+    localStorage.setItem(LS_KEY, JSON.stringify(dumpState()));
+  }catch(e){
+    /* 存满了。别反复弹，冷却 3 秒 */
+    lsBlocked = true;
+    showToast('存不下了，封面图太多。换掉几张再试');
+    setTimeout(()=>{ lsBlocked = false; }, 3000);
+  }
+}
+function lsLoad(){
+  let d;
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if(!raw) return false;
+    d = JSON.parse(raw);
+  }catch(e){ return false; }   /* 数据坏了就当没存过，不能让整页挂掉 */
+  if(!d || typeof d !== 'object') return false;
+  try{ applyState(d); return true; }catch(e){ return false; }
+}
+
+/* 图片存前压到最长边 1080、WebP 质量 .82。
+   相册原图 DataURL 动辄好几 MB，不压必然爆 localStorage。 */
+function shrinkImage(dataURL, cb, maxPx, q){
+  maxPx = maxPx || 1080; q = q || .82;
+  const img = new Image();
+  img.onload = ()=>{
+    let w = img.width, h = img.height;
+    const scale = Math.min(1, maxPx / Math.max(w, h));
+    w = Math.max(1, Math.round(w*scale)); h = Math.max(1, Math.round(h*scale));
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    c.getContext('2d').drawImage(img, 0, 0, w, h);
+    let out = null;
+    try{ out = c.toDataURL('image/webp', q); }catch(e){}
+    if(!out || out.indexOf('data:image/webp') !== 0){
+      try{ out = c.toDataURL('image/jpeg', q); }catch(e){ out = null; }
+    }
+    cb(out && out.length < dataURL.length ? out : dataURL);
+  };
+  img.onerror = ()=>cb(dataURL);
+  img.src = dataURL;
+}
+
 /* ========== Constants ========== */
 const GRADS = {
   cv1:'linear-gradient(150deg,#F4C2CE,#E07A9B)',
@@ -925,14 +974,27 @@ const SCRIPTS = PRESETS.map(p=>{
 });
 const cats = [...CATS];
 
-/* Demo：让「粘人小狗」和「财富自由」处于正在演，演到第 3 / 第 5 天 */
-(function seed(){
-  const a = SCRIPTS[0];
-  a.state = 'playing'; a.startDate = shiftK(td(),-2);
-  const b = SCRIPTS[2];
-  b.state = 'playing'; b.startDate = shiftK(td(),-4); b.days = 21;
-  for(let d=8;d<=21;d++) b.acts[d] = ['',''];
-})();
+/* 存进 localStorage 的就这三样：剧本、分类、自增 id。
+   uid 一定要一起存，不然重开后新建的剧本 id 会跟已存的撞上。
+   filter 不存 —— 每次回来都从「全部」看更顺。 */
+function dumpState(){
+  return { scripts: SCRIPTS, cats: cats, uid: uid };
+}
+function applyState(d){
+  if(Array.isArray(d.scripts)){
+    SCRIPTS.length = 0;                       /* const 数组只能就地改 */
+    d.scripts.forEach(s=>SCRIPTS.push(s));
+  }
+  if(Array.isArray(d.cats) && d.cats.length){
+    cats.length = 0;
+    d.cats.forEach(c=>cats.push(c));
+  }
+  if(typeof d.uid === 'number' && d.uid > uid) uid = d.uid;
+}
+
+/* 有存档就盖回存档，没存档就是全新的一份内容库 —— 所有剧本都停在「未开启」，
+   要不要开、从哪天开始，交给用户点。 */
+lsLoad();
 
 let filter = '全部';
 let curId = null;          // 详情页当前剧本
@@ -1113,6 +1175,7 @@ function bindChipDrag(el, host){
     /* DOM 顺序回写进 cats */
     cats.length = 0;
     host.querySelectorAll('.chip[data-cat]').forEach(n=>cats.push(n.textContent));
+    lsSave();
     renderChips(); renderGrid();
     showToast('顺序改好了');
   };
@@ -1339,6 +1402,7 @@ function bindDetail(s){
       const d = +el.dataset.w, i = +el.dataset.i;
       if(!s.acts[d]) s.acts[d] = [];
       if(s.acts[d].length <= i) s.acts[d][i] = '';
+      lsSave();
       openActSheet(s.id, d, i);
     });
   });
@@ -1350,6 +1414,7 @@ function bindDetail(s){
       const t = (s.acts[d]||[])[i];
       const kill = ()=>{
         s.acts[d].splice(i,1);
+        lsSave();
         renderDetail(); renderAll(); showToast('已删除这一幕');
       };
       if(t && t.trim()) ask(`DAY ${d} 第 ${i+1} 幕写了内容，删掉找不回来。`, kill);
@@ -1363,6 +1428,7 @@ function bindDetail(s){
       if(!s.acts[d]) s.acts[d] = [];
       s.acts[d].push('');
       const i = s.acts[d].length - 1;
+      lsSave();
       renderDetail(); renderAll();
       openActSheet(s.id, d, i);
     });
@@ -1374,6 +1440,7 @@ function bindDetail(s){
     if(s.days >= DAYS_MAX) return;
     s.days++;
     if(!s.acts[s.days]) s.acts[s.days] = [''];
+    lsSave();
     renderDetail(); renderAll(); showToast(`加到 ${s.days} 天 · DAY ${s.days} 的幕等你写`);
   });
   if(minus) minus.addEventListener('click',()=>{
@@ -1387,6 +1454,7 @@ function bindDetail(s){
     const kill = ()=>{
       delete s.acts[d];
       s.days--;
+      lsSave();
       renderDetail(); renderAll(); showToast(`减到 ${s.days} 天`);
     };
     if(w) ask(`DAY ${d} 已经写了 ${w} 幕，删掉就找不回来了。`, kill);
@@ -1398,6 +1466,7 @@ function bindDetail(s){
       if(b.dataset.cv==='pick'){ pickCover(s.id); return; }
       ask('把封面换回原来的渐变？',()=>{
         s.coverData = null;
+        lsSave();
         renderDetail(); renderAll(); showToast('封面已移除');
       });
     });
@@ -1407,10 +1476,10 @@ function bindDetail(s){
     b.addEventListener('click',()=>{
       const a = b.dataset.do;
       if(a==='start'){ startScript(s.id); renderDetail(); }
-      else if(a==='finish'){ s.state='done'; s.startDate=null; closeDetail(); renderAll(); showToast('已收进「演过的」'); }
+      else if(a==='finish'){ s.state='done'; s.startDate=null; lsSave(); closeDetail(); renderAll(); showToast('已收进「演过的」'); }
       else if(a==='stop'){
         ask('不演了？进度会停在这里，剧本收进「演过的」。',()=>{
-          s.state='stopped'; s.startDate=null; closeDetail(); renderAll(); showToast('已停止');
+          s.state='stopped'; s.startDate=null; lsSave(); closeDetail(); renderAll(); showToast('已停止');
         });
       }
       else if(a==='again'){ playAgain(s.id); renderDetail(); }
@@ -1424,6 +1493,7 @@ function startScript(id){
   const s = SCRIPTS.find(x=>x.id===id);
   s.state = 'playing';
   s.startDate = td();
+  lsSave();
   renderAll();
   showToast(`${s.name} 开始了 · 今天是 DAY 1`);
 }
@@ -1431,6 +1501,7 @@ function playAgain(id){
   const s = SCRIPTS.find(x=>x.id===id);
   s.state = 'playing';
   s.startDate = td();
+  lsSave();
   renderAll();
   showToast('从 DAY 1 重新开始 · 你写的幕都留着');
 }
@@ -1439,6 +1510,7 @@ function deleteScript(id, after){
   const a = actCount(s);
   ask(`彻底删除《${s.name}》？这部的 ${a} 幕会一起消失，找不回来。`,()=>{
     SCRIPTS.splice(SCRIPTS.indexOf(s),1);
+    lsSave();
     renderAll(); showToast('已删除');
     if(after) after();
   });
@@ -1503,6 +1575,7 @@ document.getElementById('asOk').addEventListener('click',()=>{
   if(!s.acts[day]) s.acts[day] = [];
   while(s.acts[day].length <= idx) s.acts[day].push('');
   s.acts[day][idx] = asTa.value.trim();
+  lsSave();
   closeSheets();
   if(curId) renderDetail();
   renderAll();
@@ -1560,24 +1633,28 @@ cvInput.addEventListener('change',e=>{
   if(!f) return;
   const r = new FileReader();
   r.onload = ev=>{
-    if(tgt){
-      const s = SCRIPTS.find(x=>x.id===tgt);
-      if(!s) return;
-      s.coverData = ev.target.result;
-      renderDetail(); renderAll(); showToast('封面换好了');
-      return;
-    }
-    newCover = ev.target.result;
-    const cv = document.getElementById('nsCv');
-    cv.className = 'cv-slot';
-    cv.style.backgroundImage = `url(${newCover})`;
-    cv.innerHTML = '<div class="del">×</div>';
-    cv.querySelector('.del').addEventListener('click',ev2=>{
-      ev2.stopPropagation();
-      newCover = null;
-      cv.className = 'cv-slot add';
-      cv.style.backgroundImage = '';
-      cv.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>';
+    /* 相册原图动辄好几 MB，先压再存，不然 localStorage 一张就满 */
+    shrinkImage(ev.target.result, small=>{
+      if(tgt){
+        const s = SCRIPTS.find(x=>x.id===tgt);
+        if(!s) return;
+        s.coverData = small;
+        lsSave();
+        renderDetail(); renderAll(); showToast('封面换好了');
+        return;
+      }
+      newCover = small;
+      const cv = document.getElementById('nsCv');
+      cv.className = 'cv-slot';
+      cv.style.backgroundImage = `url(${newCover})`;
+      cv.innerHTML = '<div class="del">×</div>';
+      cv.querySelector('.del').addEventListener('click',ev2=>{
+        ev2.stopPropagation();
+        newCover = null;
+        cv.className = 'cv-slot add';
+        cv.style.backgroundImage = '';
+        cv.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>';
+      });
     });
   };
   r.readAsDataURL(f);
@@ -1594,6 +1671,7 @@ document.getElementById('nsOk').addEventListener('click',()=>{
     line:'', why, days:newDays, acts, state:'lib', startDate:null, preset:false
   };
   SCRIPTS.unshift(s);
+  lsSave();
   closeSheets();
   filter = newCat;
   renderAll();
@@ -1616,6 +1694,7 @@ function addCat(){
   if(!v){ showToast('写个分类名'); return; }
   if(cats.includes(v)){ showToast('已经有这个分类了'); closeSheets(); filter=v; renderAll(); return; }
   cats.push(v);
+  lsSave();
   closeSheets();
   filter = v;
   renderAll();

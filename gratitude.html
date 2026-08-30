@@ -213,8 +213,10 @@ body{
   position:absolute;inset:0;display:grid;place-items:center;
   background:rgba(90,61,74,.44);backdrop-filter:blur(2px);
   color:#fff;font-family:var(--serif-en);font-weight:600;font-size:16px;
-  letter-spacing:.5px;
+  letter-spacing:.5px;cursor:pointer;
 }
+/* 展开之后那一格换成「收起」，中文用无衬线，衬线体的中文回退很难看 */
+.e-more.less{font-family:var(--sans-cn);font-weight:500;font-size:11.5px;letter-spacing:1.5px}
 .e-ops{
   display:flex;gap:14px;margin-top:11px;padding-top:10px;
   border-top:.5px dashed var(--pearl);
@@ -506,6 +508,56 @@ body{
 </div>
 </div>
 <script>
+/* ===== 本地持久化 =====
+   刷新、以及 iOS PWA 被系统回收内存后重开，都要能恢复。
+   localStorage 在 iOS 上只有 ~5MB，所以图片一律压缩后再存（见 shrinkImage）。 */
+const LS_KEY = 'reverie.gratitude.v1';
+let lsBlocked = false;
+function lsSave(){
+  if(lsBlocked) return;
+  try{
+    localStorage.setItem(LS_KEY, JSON.stringify(dumpState()));
+  }catch(e){
+    /* 存满了。别反复弹，冷却 3 秒 */
+    lsBlocked = true;
+    showToast('存不下了，图片太多。删掉几张再试');
+    setTimeout(()=>{ lsBlocked = false; }, 3000);
+  }
+}
+function lsLoad(){
+  let d;
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if(!raw) return false;
+    d = JSON.parse(raw);
+  }catch(e){ return false; }   /* 数据坏了就当没存过，不能让整页挂掉 */
+  if(!d || typeof d !== 'object') return false;
+  try{ applyState(d); return true; }catch(e){ return false; }
+}
+
+/* 图片存前压到最长边 1080、WebP 质量 .82。
+   相册原图 DataURL 动辄好几 MB，不压必然爆 localStorage。 */
+function shrinkImage(dataURL, cb, maxPx, q){
+  maxPx = maxPx || 1080; q = q || .82;
+  const img = new Image();
+  img.onload = ()=>{
+    let w = img.width, h = img.height;
+    const scale = Math.min(1, maxPx / Math.max(w, h));
+    w = Math.max(1, Math.round(w*scale)); h = Math.max(1, Math.round(h*scale));
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    c.getContext('2d').drawImage(img, 0, 0, w, h);
+    let out = null;
+    try{ out = c.toDataURL('image/webp', q); }catch(e){}
+    if(!out || out.indexOf('data:image/webp') !== 0){
+      try{ out = c.toDataURL('image/jpeg', q); }catch(e){ out = null; }
+    }
+    cb(out && out.length < dataURL.length ? out : dataURL);
+  };
+  img.onerror = ()=>cb(dataURL);
+  img.src = dataURL;
+}
+
 /* ========== Constants ========== */
 const MO_EN = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const MO_CN = ['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
@@ -520,24 +572,27 @@ const TODAY = new Date();
 function keyOf(y,m,d){return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`}
 const TK = keyOf(TODAY.getFullYear(),TODAY.getMonth(),TODAY.getDate());
 
-/* Demo seed data in current month */
 const entries = {};
-(function seed(){
-  const y = TODAY.getFullYear(), m = TODAY.getMonth();
-  const dd = TODAY.getDate();
-  const mk = (off,txt,tags,imgs)=>{
-    const d = dd - off;
-    if(d < 1) return;
-    entries[keyOf(y,m,d)] = {txt,tags,imgs:imgs||[]};
-  };
-  mk(1,'今天下班路上一路绿灯，走到楼下时天刚好烧成一片粉紫。\n忽然觉得，好像很多事都在悄悄向我靠近。',['幸运','心情'],[{grad:'g3'}]);
-  mk(3,'ta 主动发消息说想我了。\n三个月前写在剧本里的那句话，今天照着实现了。',['显化成真','感恩'],[{grad:'g1'},{grad:'g6'}]);
-  mk(5,'感恩今天遇到的每一个善意：\n便利店阿姨多给了我一颗糖，同事帮我留了最后一份甜品。',['感恩'],[]);
-  mk(8,'翻到去年的照片，发现自己真的变好了很多。\n谢谢那时候没有放弃的我。',['感恩','心情'],[{grad:'g5'},{grad:'g2'},{grad:'g4'},{grad:'g1'},{grad:'g6'},{grad:'g3'},{grad:'g5'}]);
-})();
+/* 之前这里塞了几条假日记当 demo 数据。用户看到的是自己的日记本，
+   不该有别人写的东西 —— 真·空状态由 renderToday / renderFlow 的空态分支负责。 */
 
 /* Custom tags user creates */
 const customTags = [];
+
+/* 只存这两样。viewY / viewM 不存 —— 每次进来回到当月更合理 */
+function dumpState(){
+  return { entries: entries, customTags: customTags };
+}
+function applyState(d){
+  if(d.entries && typeof d.entries === 'object'){
+    Object.keys(entries).forEach(k=>delete entries[k]);   /* entries 是 const，只能清空再灌 */
+    Object.keys(d.entries).forEach(k=>{ entries[k] = d.entries[k]; });
+  }
+  if(Array.isArray(d.customTags)){
+    customTags.length = 0;
+    d.customTags.forEach(t=>customTags.push(t));
+  }
+}
 
 /* ========== View state ========== */
 let viewY = TODAY.getFullYear();
@@ -545,6 +600,7 @@ let viewM = TODAY.getMonth();
 let editKey = null;      // which date being edited
 let editImgs = [];       // temp images in editor
 let editTags = [];       // temp tags in editor
+const openImgs = {};     /* 哪几张卡把图片摊开了。纯视图状态，不进 localStorage */
 
 /* ========== Render: month header ========== */
 function renderHeader(){
@@ -606,7 +662,7 @@ function renderFlow(){
     .sort().reverse();
   cnt.textContent = keys.length ? keys.length + ' 条' : '';
   if(!keys.length){
-    flow.innerHTML = '<div class="flow-empty"><span class="en">Nothing yet.</span>这个月还没有记录<br>点右下角写下第一条</div>';
+    flow.innerHTML = '<div class="flow-empty"><span class="en">Nothing yet.</span>这个月还没有记录</div>';
     return;
   }
   keys.forEach(k=>{
@@ -623,10 +679,16 @@ function renderFlow(){
     const imgs = e.imgs||[];
     let imgHtml = '';
     if(imgs.length){
-      const n = Math.min(imgs.length,4);
-      const extra = imgs.length - 4;
-      imgHtml = `<div class="e-imgs n${n}">` + imgs.slice(0,4).map((im,i)=>{
-        const more = (extra > 0 && i === 3) ? `<span class="e-more">+${extra}</span>` : '';
+      /* 超过 FLOW_IMG_MAX 张就折起来，点角标摊开全部，再点收回去 */
+      const open = !!openImgs[k];
+      const over = imgs.length > FLOW_IMG_MAX;
+      const show = (open || !over) ? imgs : imgs.slice(0, FLOW_IMG_MAX);
+      const extra = imgs.length - FLOW_IMG_MAX;
+      const n = open && over ? FLOW_IMG_MAX : Math.min(imgs.length, FLOW_IMG_MAX);
+      imgHtml = `<div class="e-imgs n${n}">` + show.map((im,i)=>{
+        let more = '';
+        if(over && !open && i === FLOW_IMG_MAX - 1) more = `<span class="e-more" data-more="${k}">+${extra}</span>`;
+        if(over && open && i === show.length - 1) more = `<span class="e-more less" data-more="${k}">收起</span>`;
         if(im && im.grad) return `<div class="e-img ${im.grad}">${more}</div>`;
         return `<div class="e-img" style="background-image:url(${im})">${more}</div>`;
       }).join('') + '</div>';
@@ -652,10 +714,22 @@ function renderFlow(){
       else {
         ask('删除这条记录？写过的字和图会一起消失。',()=>{
           delete entries[k];
+          delete openImgs[k];
+          lsSave();
           renderAll();
           showToast('已删除');
         });
       }
+    });
+  });
+  /* 角标之前是个死元素，点了没反应。现在点一下摊开这张卡的全部图片 */
+  flow.querySelectorAll('[data-more]').forEach(el=>{
+    el.addEventListener('click',(ev)=>{
+      ev.stopPropagation();
+      const k = el.dataset.more;
+      if(openImgs[k]) delete openImgs[k];
+      else openImgs[k] = 1;
+      renderFlow();
     });
   });
 }
@@ -714,6 +788,8 @@ function saveEditor(){
   }
   entries[editKey] = {txt, imgs:[...editImgs], tags:[...editTags]};
   const k = editKey;
+  delete openImgs[k];   /* 图片改过了，展开态重新算 */
+  lsSave();
   closeEditor();
   renderAll();
   showToast('已保存');
@@ -761,14 +837,23 @@ function getGradCss(g){
 fileInput.addEventListener('change',(e)=>{
   const files = Array.from(e.target.files || []);
   if(!files.length) return;
+  /* 张数不限，所以每张都先压一遍再进 editImgs，不然几张就把 localStorage 撑爆。
+     压缩是异步的，用下标占位保证顺序跟用户选的一致 */
+  const slots = new Array(files.length).fill(null);
   let pending = files.length;
-  files.forEach(file=>{
+  const done = ()=>{
+    if(--pending > 0) return;
+    slots.forEach(s=>{ if(s) editImgs.push(s); });
+    renderEdImgs();
+    const ok = slots.filter(s=>s).length;
+    if(ok) showToast('已添加 ' + ok + ' 张');
+  };
+  files.forEach((file,idx)=>{
     const reader = new FileReader();
     reader.onload = (ev)=>{
-      editImgs.push(ev.target.result);
-      if(--pending === 0){ renderEdImgs(); showToast('已添加 ' + files.length + ' 张'); }
+      shrinkImage(ev.target.result, out=>{ slots[idx] = out; done(); });
     };
-    reader.onerror = ()=>{ if(--pending === 0) renderEdImgs(); };
+    reader.onerror = ()=>done();
     reader.readAsDataURL(file);
   });
   fileInput.value = '';
@@ -805,11 +890,13 @@ function addCustomTag(){
   const inp = document.getElementById('edCustomInput');
   const v = inp.value.trim();
   if(!v) return;
-  if(!customTags.includes(v) && !PRESET_TAGS.includes(v)) customTags.push(v);
+  let isNew = false;
+  if(!customTags.includes(v) && !PRESET_TAGS.includes(v)){ customTags.push(v); isNew = true; }
   if(!editTags.includes(v)) editTags.push(v);
   inp.value = '';
   document.getElementById('edCustom').classList.remove('on');
   renderEdTags();
+  if(isNew) lsSave();   /* 自定义标签本身就要留住，哪怕这条日记最后没保存 */
 }
 document.getElementById('edCustomOk').addEventListener('click',addCustomTag);
 document.getElementById('edCustomInput').addEventListener('keydown',e=>{
@@ -854,6 +941,7 @@ function showToast(msg){
 }
 
 /* ========== Init ========== */
+lsLoad();   /* 必须在第一次 render 之前 */
 renderAll();
 /* ========== Misc bindings ========== */
 mask.addEventListener('click',closeEditor);
