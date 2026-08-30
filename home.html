@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#FFF3F7">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Reverie">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<title>Reverie · Sanctum</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Inter:wght@400;500;600&family=Noto+Serif+SC:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#FFF9FC;
+  --bg-2:#FBF1F4;
+
+  /* 背景可替换：如果想换成 PNG，把下面的 --bg-image 改成 url('xxx.png')
+     或用内联 style="--bg-image:url('./bg.png')" 覆盖即可 */
+  --bg-image:none;
+  --bg-gradient:
+    radial-gradient(1200px 800px at 15% -10%,#F5CDDB 0%,transparent 55%),
+    radial-gradient(1000px 700px at 100% 100%,#F6D5DE 0%,transparent 60%),
+    #FFF3F7;
+
+  --surface:rgba(255,253,254,.88);
+  --surface-solid:#FFFCFD;
+  --pearl:#F1E3E8;
+  --rose:#D4A5B0;
+  --rose-deep:#A87682;
+  --gold:#C9A87A;
+  --t1:#5A3D4A;
+  --t2:#8B6B7A;
+  --t3:#B89AAA;
+  --serif-en:'Cormorant Garamond',serif;
+  --sans-en:'Inter',-apple-system,sans-serif;
+  --serif-cn:'Noto Serif SC',serif;
+  --sans-cn:-apple-system,'PingFang SC',sans-serif;
+  --r-card:20px;
+  --r-pill:999px;
+  --r-input:14px;
+  --r-icon:10px;
+  --shadow-card:0 6px 24px rgba(180,120,130,.14),inset 0 1px 0 rgba(255,255,255,.9);
+  --shadow-float:0 12px 40px rgba(160,100,110,.18);
+  --line:.5px solid rgba(255,255,255,.7);
+}
+html,body{height:100%}
+body{
+  font-family:var(--sans-cn);color:var(--t1);font-size:15px;
+  background-color:#FFF3F7;
+  background-image:var(--bg-image),var(--bg-gradient);
+  background-size:cover;
+  background-position:center;
+  background-attachment:fixed;
+  background-repeat:no-repeat;
+  min-height:100vh;overflow-x:hidden;
+  padding-bottom:130px;
+}
+
+/* ===== Phone frame (for desktop preview only) ===== */
+.phone{
+  max-width:420px;margin:0 auto;position:relative;
+  padding:0 20px;padding-top:calc(env(safe-area-inset-top,20px) + 8px);
+}
+
+/* ===== Section title ===== */
+.sec{
+  display:flex;align-items:baseline;justify-content:space-between;
+  margin:18px 4px 12px;
+}
+.sec:first-of-type{margin-top:8px}
+.sec-l{display:flex;align-items:baseline;gap:8px}
+.sec-l .en{font-family:var(--serif-en);font-size:20px;font-weight:500;color:var(--t1);font-style:italic;letter-spacing:.4px}
+.sec-l .cn{font-family:var(--serif-cn);font-size:11px;color:var(--t2);letter-spacing:2px;margin-left:2px}
+.sec-r{font-size:11px;color:var(--rose-deep);letter-spacing:1px;cursor:pointer;font-family:var(--sans-en);font-weight:500}
+
+/* ===== Glass card ===== */
+.card{
+  background:var(--surface);
+  backdrop-filter:blur(24px) saturate(180%);
+  -webkit-backdrop-filter:blur(24px) saturate(180%);
+  border:1px solid rgba(255,255,255,.85);
+  border-radius:var(--r-card);
+  box-shadow:var(--shadow-card);
+  padding:20px;position:relative;overflow:hidden;
+}
+.card + .card{margin-top:14px}
+
+/* ===== Affirmation card ===== */
+.aff{padding:24px 22px 22px;text-align:center;position:relative}
+.aff .label{font-size:10px;color:var(--t3);letter-spacing:3px;font-family:var(--sans-en);font-weight:500;text-transform:uppercase}
+.aff .quote{
+  font-family:var(--serif-cn);font-weight:500;font-size:17px;line-height:1.9;
+  color:var(--t1);margin:10px 0 12px;
+}
+.aff .sub{
+  font-family:var(--serif-en);font-style:italic;font-size:13px;color:var(--rose-deep);
+}
+.aff::before,.aff::after{
+  content:'';position:absolute;width:60px;height:1px;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent);
+  opacity:.6;left:50%;transform:translateX(-50%);
+}
+.aff::before{top:52px}
+.aff::after{bottom:52px}
+
+/* ===== Ritual entry card (→ affirm.html) ===== */
+.ritual-entry{
+  display:flex;align-items:center;gap:14px;
+  padding:16px 18px;cursor:pointer;transition:transform .15s;
+}
+.ritual-entry:active{transform:scale(.985)}
+.re-txt{flex:1;min-width:0}
+.re-en{
+  font-family:var(--serif-en);font-style:italic;font-size:13px;
+  color:var(--rose-deep);letter-spacing:.6px;display:block;line-height:1.2;
+}
+.re-cn{
+  font-family:var(--serif-cn);font-weight:600;font-size:16.5px;
+  color:var(--t1);letter-spacing:1px;margin-top:4px;
+}
+.re-sub{
+  font-size:11.5px;color:var(--t3);letter-spacing:.3px;
+  line-height:1.6;margin-top:5px;
+}
+.re-go{
+  flex:0 0 auto;width:40px;height:40px;border-radius:50%;
+  background:linear-gradient(135deg,var(--rose) 0%,var(--rose-deep) 100%);
+  display:grid;place-items:center;
+  box-shadow:
+    0 4px 12px rgba(168,118,130,.32),
+    inset 0 1px 0 rgba(255,255,255,.35),
+    inset 0 -1px 0 rgba(120,70,80,.15);
+}
+.re-go svg{
+  width:18px;height:18px;fill:none;stroke:#fff;stroke-width:1.65;
+  stroke-linecap:round;stroke-linejoin:round;
+}
+
+/* ===== Todo card ===== */
+.todo-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.todo-head .t{font-family:var(--serif-en);font-size:15px;font-style:italic;color:var(--t1)}
+.todo-head .t .cn{font-family:var(--serif-cn);font-style:normal;font-size:11px;color:var(--t2);margin-left:6px;letter-spacing:2px}
+
+/* Release — 玫瑰渐变胶囊按钮，放在 Todo 卡头右侧 */
+.release-btn{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:7px 14px 7px 12px;border-radius:var(--r-pill);
+  background:linear-gradient(135deg,var(--rose) 0%,var(--rose-deep) 100%);
+  color:#fff;font-size:12.5px;font-family:var(--sans-cn);font-weight:500;
+  letter-spacing:1px;cursor:pointer;border:none;
+  box-shadow:
+    0 4px 12px rgba(168,118,130,.32),
+    inset 0 1px 0 rgba(255,255,255,.35),
+    inset 0 -1px 0 rgba(120,70,80,.15);
+  transition:transform .15s;
+}
+.release-btn:active{transform:scale(.96)}
+.release-btn svg{width:14px;height:14px;stroke-width:1.5}
+
+.todo{
+  display:flex;align-items:center;gap:12px;
+  padding:11px 0;border-top:.5px solid var(--pearl);
+}
+.todo:first-of-type{border-top:none;padding-top:4px}
+.chk{
+  width:19px;height:19px;border-radius:50%;flex-shrink:0;
+  border:1.3px solid var(--t3);background:transparent;cursor:pointer;
+  display:grid;place-items:center;transition:all .2s;
+}
+.chk.done{border-color:var(--rose);background:var(--rose)}
+.chk.done::after{content:'';width:8px;height:4px;border-left:1.5px solid #fff;border-bottom:1.5px solid #fff;transform:rotate(-45deg) translate(1px,-1px)}
+.todo .txt{flex:1;font-size:14px;color:var(--t1)}
+.todo.done .txt{color:var(--t3);text-decoration:line-through}
+.add-row{
+  display:flex;align-items:center;gap:8px;padding-top:12px;margin-top:6px;
+  border-top:.5px dashed var(--pearl);
+  color:var(--t3);font-size:12px;cursor:pointer;
+}
+.add-row svg{width:14px;height:14px}
+
+/* ===== Theater (timeline) card ===== */
+/* 多部剧本同时在演 → 横向滑卡，一次只露一部 */
+.th-wrap{
+  display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;
+  scrollbar-width:none;padding-bottom:2px;
+}
+.th-wrap::-webkit-scrollbar{display:none}
+.th-wrap > .card{flex:0 0 100%;scroll-snap-align:start;margin-top:0}
+.th-ind{display:flex;justify-content:center;gap:5px;margin-top:10px}
+.th-ind i{width:5px;height:5px;border-radius:50%;background:rgba(212,165,176,.32);transition:all .25s}
+.th-ind i.on{width:16px;border-radius:3px;background:var(--rose-deep)}
+.sec-r.count{color:var(--t3);font-family:var(--sans-en)}
+/* Cormorant 老式数字会把 1 写成小写 I，数字位强制 lining */
+.day-badge,.tl-dot,.scene .lead,.todo-head .t,.day-badge{font-variant-numeric:lining-nums;font-feature-settings:"lnum" 1,"onum" 0}
+.theater-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.theater-title{font-family:var(--serif-en);font-size:16px;font-style:italic;color:var(--t1)}
+.theater-title .cn{font-family:var(--serif-cn);font-style:normal;font-size:12px;color:var(--t2);margin-left:6px;letter-spacing:1.5px}
+.day-badge{
+  font-family:var(--sans-en);font-size:11px;font-weight:500;letter-spacing:1px;
+  color:var(--rose-deep);padding:3px 10px;border-radius:var(--r-pill);
+  background:rgba(212,165,176,.14);
+}
+.timeline{
+  position:relative;padding:6px 0 4px;margin:8px 2px 14px;
+}
+.timeline::before{
+  content:'';position:absolute;left:12px;right:12px;top:50%;height:1px;
+  background:linear-gradient(90deg,transparent 0%,var(--pearl) 15%,var(--pearl) 85%,transparent 100%);
+  transform:translateY(-50%);
+}
+.tl-row{display:flex;justify-content:space-between;position:relative;z-index:1}
+.tl-dot{
+  width:26px;height:26px;border-radius:50%;
+  display:grid;place-items:center;
+  background:var(--surface-solid);
+  border:1px solid var(--pearl);
+  font-family:var(--serif-en);font-size:11px;color:var(--t3);font-weight:500;
+}
+.tl-dot.done{background:rgba(212,165,176,.12);border-color:rgba(212,165,176,.35);color:var(--rose-deep)}
+.tl-dot.cur{
+  background:linear-gradient(145deg,var(--rose),var(--rose-deep));
+  border-color:transparent;color:#fff;
+  box-shadow:0 3px 10px rgba(168,118,130,.35);
+  width:30px;height:30px;font-weight:600;
+}
+.tl-dot.done::after{
+  content:'';position:absolute;width:5px;height:5px;border-radius:50%;
+  background:var(--rose);transform:translate(11px,-10px);
+}
+.scene{
+  font-family:var(--serif-cn);font-weight:500;
+  font-size:14px;line-height:1.85;color:var(--t1);
+  padding:14px 4px 4px;
+  position:relative;
+}
+.scene + .scene{padding-top:14px;margin-top:10px;border-top:.5px dashed rgba(212,165,176,.35)}
+.scene::before{
+  content:'';position:absolute;left:0;top:14px;bottom:4px;width:2px;
+  background:linear-gradient(180deg,var(--rose),transparent);
+  border-radius:2px;opacity:.55;
+}
+.scene-inner{padding-left:14px}
+.scene .lead{font-family:var(--serif-en);font-style:italic;font-size:12px;color:var(--rose-deep);letter-spacing:.5px;margin-bottom:4px;display:block}
+.scene .lead .cn{font-family:var(--serif-cn);font-style:normal;font-size:10.5px;color:var(--t3);margin-left:5px;letter-spacing:1px}
+/* 一幕可以写很长 —— 首页只露两行，全文去剧本页看 */
+.scene .txt{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+/* 一天超过两幕时，多的收起来 */
+.th-more{
+  margin-top:13px;padding-top:11px;border-top:.5px dashed rgba(212,165,176,.35);
+  font-size:11.5px;color:var(--rose-deep);letter-spacing:.5px;
+  display:flex;align-items:center;gap:5px;cursor:pointer;
+}
+.th-more svg{width:11px;height:11px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+
+/* ===== TabBar — floating pill with center-raised Home ===== */
+.tabbar-wrap{
+  position:fixed;left:0;right:0;bottom:0;
+  padding:0 12px calc(10px + env(safe-area-inset-bottom));
+  display:flex;justify-content:center;pointer-events:none;
+  z-index:100;
+}
+.tabbar{
+  position:relative;pointer-events:auto;
+  width:100%;max-width:396px;
+  padding:6px 10px;
+  background:rgba(255,253,254,.78);
+  backdrop-filter:blur(40px) saturate(180%);
+  -webkit-backdrop-filter:blur(40px) saturate(180%);
+  border:1px solid rgba(255,255,255,.85);
+  border-radius:var(--r-pill);
+  box-shadow:
+    0 12px 32px rgba(180,120,130,.22),
+    0 2px 6px rgba(180,120,130,.10),
+    inset 0 1px 0 rgba(255,255,255,.9);
+  display:flex;justify-content:space-between;align-items:center;
+}
+.tab{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;
+  padding:2px 2px;color:var(--t3);cursor:pointer;
+  transition:color .2s;
+}
+.tab.on{color:var(--rose-deep)}
+.tab-ic{
+  width:28px;height:24px;display:grid;place-items:center;
+}
+.tab svg{width:21px;height:21px;stroke-linecap:round;stroke-linejoin:round}
+.tab span{font-size:10px;letter-spacing:.5px;font-family:var(--sans-cn);font-weight:500}
+
+/* Center-raised Home tab — rose color, no white ring */
+.tab.home{
+  position:relative;flex:0 0 auto;width:60px;
+}
+.tab.home .home-btn{
+  position:absolute;left:50%;top:-22px;transform:translateX(-50%);
+  width:50px;height:50px;border-radius:50%;
+  background:var(--rose);
+  display:grid;place-items:center;color:#fff;
+  box-shadow:
+    0 8px 18px rgba(200,140,150,.42),
+    0 2px 5px rgba(200,140,150,.22),
+    inset 0 1px 0 rgba(255,255,255,.35),
+    inset 0 -2px 4px rgba(140,80,90,.15);
+}
+.tab.home .home-btn svg{width:22px;height:22px;stroke-width:1.8}
+.tab.home span{margin-top:30px;color:var(--rose-deep);font-weight:600}
+
+/* ===== Preview note ===== */
+.hint{
+  max-width:420px;margin:24px auto 0;padding:16px 20px;
+  font-size:12px;line-height:1.7;color:var(--t2);
+  background:rgba(255,255,255,.5);border-radius:14px;
+  border:.5px solid var(--pearl);
+}
+.hint b{color:var(--rose-deep);font-weight:600}
+</style></head>
+<body>
+<div class="phone">
+
+  <!-- Section: Affirmation -->
+  <div class="sec">
+    <div class="sec-l">
+      <span class="en">Daily Affirmation</span>
+      <span class="cn">每日肯定语</span>
+    </div>
+  </div>
+
+  <div class="card aff">
+    <div class="label">TODAY'S WORD</div>
+    <div class="quote">你的一切愿望<br>都已在来的路上</div>
+    <div class="sub">Still becoming.</div>
+  </div>
+
+  <!-- Ritual entry → affirm.html -->
+  <div class="card ritual-entry" onclick="location.href='affirm.html'">
+    <div class="re-txt">
+      <span class="re-en">Begin the Ritual</span>
+      <div class="re-cn">开始今日仪式</div>
+      <div class="re-sub">找一个安静的时刻，把今天的句子念给自己</div>
+    </div>
+    <div class="re-go">
+      <svg viewBox="0 0 24 24"><path d="M5 12h13"/><path d="M12.5 6.5 19 12l-6.5 5.5"/></svg>
+    </div>
+  </div>
+
+  <!-- Section: Todo -->
+  <div class="sec">
+    <div class="sec-l">
+      <span class="en">Today's Ritual</span>
+      <span class="cn">今日待办</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="todo-head">
+      <div class="t">3 things<span class="cn">今日 3 项</span></div>
+      <button class="release-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20.5 3.5c-4 0-8 2-11 5s-5 7-5 11l16-16Z"/>
+          <path d="M4.5 19.5 12 12"/>
+          <path d="M15 6l3 3"/>
+          <path d="M12 9l3 3"/>
+          <path d="M9 12l3 3"/>
+        </svg>
+        <span>释放</span>
+      </button>
+    </div>
+    <div class="todo done">
+      <div class="chk done"></div>
+      <div class="txt">诵读今日肯定语</div>
+    </div>
+    <div class="todo">
+      <div class="chk"></div>
+      <div class="txt">写下今天的一个感恩</div>
+    </div>
+    <div class="todo">
+      <div class="chk"></div>
+      <div class="txt">完成《爱情丨粘人小狗》剧本 Day 3</div>
+    </div>
+    <div class="add-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      <span>添加新的今日事</span>
+    </div>
+  </div>
+
+  <!-- Section: Theater -->
+  <div class="sec">
+    <div class="sec-l">
+      <span class="en">Today's Theater</span>
+      <span class="cn">今日剧场</span>
+    </div>
+    <div class="sec-r count">2 部在演</div>
+  </div>
+
+  <!-- 多部在演 → 左右滑切剧本；7 个点跟着今天自动切周，不用手滑 -->
+  <div class="th-wrap" id="thWrap">
+
+    <div class="card" onclick="location.href='script.html'">
+      <div class="theater-head">
+        <div class="theater-title">Rose Whisper<span class="cn">爱情丨粘人小狗</span></div>
+        <div class="day-badge">DAY 3 / 7</div>
+      </div>
+      <div class="timeline">
+        <div class="tl-row">
+          <div class="tl-dot done">1</div>
+          <div class="tl-dot done">2</div>
+          <div class="tl-dot cur">3</div>
+          <div class="tl-dot">4</div>
+          <div class="tl-dot">5</div>
+          <div class="tl-dot">6</div>
+          <div class="tl-dot">7</div>
+        </div>
+      </div>
+      <div class="scene">
+        <div class="scene-inner">
+          <span class="lead">Act 1<span class="cn">第 1 幕</span></span>
+          <div class="txt">开会开到一半，我低头看见 ta 发来一张窗外的云：「像不像你昨天说的那种。」</div>
+        </div>
+      </div>
+      <div class="scene">
+        <div class="scene-inner">
+          <span class="lead">Act 2<span class="cn">第 2 幕</span></span>
+          <div class="txt">回到家 ta 已经放好了洗澡水，还点了一支香。我还没开口，ta 已经把我需要的都准备好了。</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" onclick="location.href='script.html'">
+      <div class="theater-head">
+        <div class="theater-title">Money Loves Me<span class="cn">财富丨财富自由</span></div>
+        <div class="day-badge">DAY 5 / 21</div>
+      </div>
+      <div class="timeline">
+        <div class="tl-row">
+          <div class="tl-dot done">1</div>
+          <div class="tl-dot done">2</div>
+          <div class="tl-dot done">3</div>
+          <div class="tl-dot done">4</div>
+          <div class="tl-dot cur">5</div>
+          <div class="tl-dot">6</div>
+          <div class="tl-dot">7</div>
+        </div>
+      </div>
+      <div class="scene">
+        <div class="scene-inner">
+          <span class="lead">Act 1<span class="cn">第 1 幕</span></span>
+          <div class="txt">我买下了那件一直放在收藏夹里的东西，付款那一秒毫无负担。</div>
+        </div>
+      </div>
+      <div class="scene">
+        <div class="scene-inner">
+          <span class="lead">Act 2<span class="cn">第 2 幕</span></span>
+          <div class="txt">睡前我想：钱一直在找我，而不是我在追钱。</div>
+        </div>
+      </div>
+      <div class="th-more">
+        <span>还有 1 幕</span>
+        <svg viewBox="0 0 24 24"><path d="M5 12h13"/><path d="M12.5 6.5 19 12l-6.5 5.5"/></svg>
+      </div>
+    </div>
+
+  </div>
+  <div class="th-ind" id="thInd"><i class="on"></i><i></i></div>
+
+  <!-- spacer -->
+  <div style="height:20px"></div>
+</div>
+
+<!-- TabBar -->
+<div class="tabbar-wrap">
+<nav class="tabbar">
+  <div class="tab" onclick="location.href='affirm.html'"><div class="tab-ic">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65"><path d="M12 3.2c.7 4.5 2.3 6.1 6.8 6.8-4.5.7-6.1 2.3-6.8 6.8-.7-4.5-2.3-6.1-6.8-6.8 4.5-.7 6.1-2.3 6.8-6.8Z"/><path d="M18.5 15.2c.3 2 1 2.7 3 3-2 .3-2.7 1-3 3-.3-2-1-2.7-3-3 2-.3 2.7-1 3-3Z"/></svg>
+  </div><span>肯定语</span></div>
+
+  <div class="tab" onclick="location.href='gratitude.html'"><div class="tab-ic">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65"><path d="M12 20.2c-1.2-1-7.8-5-7.8-10.5C4.2 6.9 6.1 5 8.7 5c1.5 0 2.7.7 3.3 1.8.6-1.1 1.8-1.8 3.3-1.8 2.6 0 4.5 1.9 4.5 4.7 0 5.5-6.6 9.5-7.8 10.5Z"/></svg>
+  </div><span>感恩</span></div>
+
+  <div class="tab home on">
+    <div class="home-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4.3 10.2 12 4l7.7 6.2v8.1a1.7 1.7 0 0 1-1.7 1.7H6a1.7 1.7 0 0 1-1.7-1.7z"/><path d="M9.3 20v-5.1a2.7 2.7 0 0 1 5.4 0V20"/></svg>
+    </div>
+    <span>首页</span>
+  </div>
+
+  <div class="tab" onclick="location.href='script.html'"><div class="tab-ic">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65"><rect x="5" y="3.5" width="14" height="17" rx="3"/><path d="M8.7 7.6h6.6M8.7 11.2h6.6M8.7 14.8h3.8"/></svg>
+  </div><span>剧本</span></div>
+
+  <div class="tab" onclick="location.href='me.html'"><div class="tab-ic">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65"><circle cx="12" cy="8.2" r="3.6"/><path d="M5.5 20c.4-4 2.7-6.1 6.5-6.1s6.1 2.1 6.5 6.1"/></svg>
+  </div><span>我的</span></div>
+</nav>
+</div>
+
+<script>
+/* 今日剧场滑卡 —— 小点跟着滑动位置走 */
+(function(){
+  const wrap = document.getElementById('thWrap');
+  const ind = document.getElementById('thInd');
+  if(!wrap || !ind) return;
+  const dots = [...ind.children];
+  if(dots.length < 2){ ind.innerHTML = ''; return; }
+  wrap.addEventListener('scroll',()=>{
+    const i = Math.round(wrap.scrollLeft / wrap.clientWidth);
+    dots.forEach((d,j)=>d.classList.toggle('on', j===i));
+  });
+})();
+</script>
+
+<script>
+/* PWA —— 装到桌面用。file:// 下不注册（协议不支持），只在 http/https 生效 */
+if("serviceWorker" in navigator && location.protocol.startsWith("http")){
+  window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
+}
+</script>
+</body></html>

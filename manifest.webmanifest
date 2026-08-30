@@ -1,0 +1,17 @@
+{
+  "name": "Reverie · 灵思絮语",
+  "short_name": "Reverie",
+  "description": "每日显化 · 肯定语 · 感恩 · 剧本",
+  "lang": "zh-CN",
+  "start_url": "./home.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FFF3F7",
+  "theme_color": "#FFF3F7",
+  "icons": [
+    { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

@@ -1,0 +1,1646 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#FFF3F7">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Reverie">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<title>Reverie · Scripts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Inter:wght@400;500;600&family=Noto+Serif+SC:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg-image:none;
+  --bg-gradient:
+    radial-gradient(1200px 800px at 15% -10%,#F5CDDB 0%,transparent 55%),
+    radial-gradient(1000px 700px at 100% 100%,#F6D5DE 0%,transparent 60%),
+    #FFF3F7;
+  --surface:rgba(255,253,254,.88);
+  --surface-solid:#FFFCFD;
+  --pearl:#F1E3E8;
+  --rose:#D4A5B0;
+  --rose-deep:#A87682;
+  --rose-soft:#E9C4CD;
+  --gold:#C9A87A;
+  --t1:#5A3D4A;--t2:#8B6B7A;--t3:#B89AAA;
+  --serif-en:'Cormorant Garamond',serif;
+  --sans-en:'Inter',-apple-system,sans-serif;
+  --serif-cn:'Noto Serif SC',serif;
+  --sans-cn:-apple-system,'PingFang SC',sans-serif;
+  --r-card:20px;--r-pill:999px;
+  --shadow-card:0 6px 24px rgba(180,120,130,.14),inset 0 1px 0 rgba(255,255,255,.9);
+}
+html,body{height:100%}
+body{
+  font-family:var(--sans-cn);color:var(--t1);font-size:15px;
+  background-color:#FFF3F7;
+  background-image:var(--bg-image),var(--bg-gradient);
+  background-size:cover;background-position:center;
+  background-attachment:fixed;background-repeat:no-repeat;
+  min-height:100vh;overflow-x:hidden;padding-bottom:100px;
+}
+.phone{max-width:420px;margin:0 auto;position:relative;padding:0 14px;padding-top:calc(env(safe-area-inset-top,20px) + 12px)}
+
+/* ===== Section title ===== */
+.sec{display:flex;align-items:baseline;justify-content:space-between;margin:22px 4px 12px}
+.sec:first-of-type{margin-top:0}
+.sec-l{display:flex;align-items:baseline;gap:8px}
+.sec-l .en{font-family:var(--serif-en);font-size:20px;font-weight:500;color:var(--t1);font-style:italic;letter-spacing:.4px}
+.sec-l .cn{font-family:var(--serif-cn);font-size:11px;color:var(--t2);letter-spacing:2px}
+.sec-r{font-size:11px;color:var(--t3);letter-spacing:.5px;font-family:var(--sans-en)}
+
+/* Cormorant 默认走老式数字，"1" 会长成小写 I —— 所有数字位强制 lining figures */
+.dot,.st-n,.d-stat .n,.db-d .n,.np-day,.sc-badge,.np-scene .lead,.act-lb,.sc-meta{
+  font-variant-numeric:lining-nums;
+  font-feature-settings:"lnum" 1,"onum" 0;
+}
+/* ===== Now playing · horizontal swipe carousel ===== */
+.np-wrap{
+  display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;
+  scrollbar-width:none;padding-bottom:2px;
+}
+.np-wrap::-webkit-scrollbar{display:none}
+.np-card{
+  flex:0 0 100%;scroll-snap-align:start;
+  background:var(--surface);
+  backdrop-filter:blur(24px) saturate(180%);
+  -webkit-backdrop-filter:blur(24px) saturate(180%);
+  border:1px solid rgba(255,255,255,.85);
+  border-radius:var(--r-card);
+  box-shadow:var(--shadow-card);
+  padding:18px;position:relative;overflow:hidden;cursor:pointer;
+}
+.np-card::after{
+  content:'';position:absolute;right:-34px;top:-34px;
+  width:120px;height:120px;border-radius:50%;
+  background:radial-gradient(circle,rgba(212,165,176,.16),transparent 70%);
+  pointer-events:none;
+}
+.np-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.np-name{font-family:var(--serif-cn);font-weight:600;font-size:16.5px;color:var(--t1);letter-spacing:.5px}
+.np-cat{font-size:10.5px;color:var(--t3);letter-spacing:1.5px;margin-top:4px;font-family:var(--sans-cn)}
+.np-day{
+  flex:0 0 auto;font-family:var(--sans-en);font-size:11px;font-weight:500;
+  letter-spacing:1px;color:var(--rose-deep);padding:4px 11px;
+  border-radius:var(--r-pill);background:rgba(212,165,176,.14);
+}
+/* 7-dot week window */
+.dots{position:relative;padding:8px 0 2px;margin:14px 2px 4px}
+.dots::before{
+  content:'';position:absolute;left:11px;right:11px;top:calc(50% + 3px);height:1px;
+  background:linear-gradient(90deg,transparent 0%,var(--pearl) 15%,var(--pearl) 85%,transparent 100%);
+  transform:translateY(-50%);
+}
+.dots-row{display:flex;justify-content:space-between;position:relative;z-index:1}
+.dot{
+  width:25px;height:25px;border-radius:50%;display:grid;place-items:center;
+  background:var(--surface-solid);border:1px solid var(--pearl);
+  font-family:var(--serif-en);font-size:11px;color:var(--t3);font-weight:500;
+}
+.dot.done{background:rgba(212,165,176,.12);border-color:rgba(212,165,176,.35);color:var(--rose-deep)}
+.dot.cur{
+  background:linear-gradient(145deg,var(--rose),var(--rose-deep));
+  border-color:transparent;color:#fff;font-weight:600;
+  width:29px;height:29px;box-shadow:0 3px 10px rgba(168,118,130,.35);
+}
+.dots-wk{font-size:10px;color:var(--t3);letter-spacing:1px;margin:2px 2px 0;font-family:var(--sans-cn)}
+/* Scene lines inside now-playing card (max 2, clamp 2 lines each) */
+.np-scenes{margin-top:10px;padding-top:12px;border-top:.5px dashed rgba(212,165,176,.35)}
+.np-scene{position:relative;padding-left:14px}
+.np-scene + .np-scene{margin-top:11px}
+.np-scene::before{
+  content:'';position:absolute;left:0;top:3px;bottom:3px;width:2px;
+  background:linear-gradient(180deg,var(--rose),transparent);
+  border-radius:2px;opacity:.55;
+}
+.np-scene .lead{
+  font-family:var(--serif-en);font-style:italic;font-size:11.5px;
+  color:var(--rose-deep);letter-spacing:.5px;display:block;margin-bottom:3px;
+}
+.np-scene .lead .cn{font-family:var(--serif-cn);font-style:normal;font-size:10.5px;color:var(--t3);margin-left:5px;letter-spacing:1px}
+.np-scene .txt{
+  font-family:var(--serif-cn);font-weight:500;font-size:13.5px;line-height:1.8;color:var(--t1);
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+}
+.np-scene .txt.empty{color:var(--t3);font-family:var(--sans-cn);font-size:12.5px}
+.np-more{
+  margin-top:11px;font-size:11.5px;color:var(--rose-deep);letter-spacing:.5px;
+  display:flex;align-items:center;gap:4px;
+}
+.np-more svg{width:11px;height:11px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+/* Carousel page indicator */
+.np-ind{display:flex;justify-content:center;gap:5px;margin-top:10px}
+.np-ind i{
+  width:5px;height:5px;border-radius:50%;background:rgba(212,165,176,.32);
+  transition:all .25s;
+}
+.np-ind i.on{width:16px;border-radius:3px;background:var(--rose-deep)}
+/* Empty state for now-playing */
+.np-empty{
+  background:var(--surface);
+  backdrop-filter:blur(24px) saturate(180%);
+  -webkit-backdrop-filter:blur(24px) saturate(180%);
+  border:1px solid rgba(255,255,255,.85);
+  border-radius:var(--r-card);box-shadow:var(--shadow-card);
+  padding:30px 22px;text-align:center;
+}
+.np-empty .en{font-family:var(--serif-en);font-style:italic;font-size:16px;color:var(--rose-soft);display:block;margin-bottom:7px}
+.np-empty .cn{font-family:var(--serif-cn);font-size:13px;color:var(--t3);line-height:1.9}
+/* ===== Category chips ===== */
+.chips{
+  display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;
+  margin:0 -14px 14px;padding:2px 14px 4px;
+}
+.chips::-webkit-scrollbar{display:none}
+.chip{
+  flex:0 0 auto;padding:7px 15px;border-radius:var(--r-pill);
+  font-size:12.5px;color:var(--t2);cursor:pointer;white-space:nowrap;
+  border:.5px solid rgba(212,165,176,.4);
+  background:rgba(255,255,255,.6);
+  backdrop-filter:blur(20px) saturate(180%);
+  -webkit-backdrop-filter:blur(20px) saturate(180%);
+  font-family:var(--sans-cn);transition:all .2s;
+}
+.chip.on{
+  background:linear-gradient(135deg,var(--rose),var(--rose-deep));
+  color:#fff;border-color:transparent;font-weight:500;
+  box-shadow:0 3px 9px rgba(168,118,130,.3);
+}
+.chip.add{color:var(--rose-deep);border-style:dashed;background:rgba(255,255,255,.42)}
+/* 长按胶囊挪位置 */
+.chip.drag{
+  background:linear-gradient(135deg,var(--rose),var(--rose-deep));color:#fff;
+  border-color:transparent;
+  box-shadow:0 8px 20px rgba(168,118,130,.42);
+  opacity:.92;z-index:2;
+  /* 手指底下这个不能有过渡 —— .chip 上那条 transition:all .2s 会让它拖不跟手 */
+  transition:none;
+}
+/* 让位的胶囊滑过去 */
+.chips.sorting .chip:not(.drag){transition:transform .22s cubic-bezier(.2,.8,.2,1)}
+.chips.sorting .chip.fixed{opacity:.42}
+
+/* ===== Script grid (2 columns) ===== */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.sc{
+  background:var(--surface);
+  backdrop-filter:blur(24px) saturate(180%);
+  -webkit-backdrop-filter:blur(24px) saturate(180%);
+  border:1px solid rgba(255,255,255,.85);
+  border-radius:18px;box-shadow:0 5px 18px rgba(180,120,130,.12),inset 0 1px 0 rgba(255,255,255,.9);
+  overflow:hidden;cursor:pointer;transition:transform .15s;
+  display:flex;flex-direction:column;
+}
+.sc:active{transform:scale(.985)}
+.sc-cover{
+  aspect-ratio:3/4;position:relative;
+  background-size:cover;background-position:center;
+  display:flex;align-items:flex-end;padding:12px;
+}
+.sc-cover::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(180deg,transparent 42%,rgba(90,61,74,.42) 100%);
+}
+.sc-cover .line{
+  position:relative;z-index:1;
+  font-family:var(--serif-en);font-style:italic;font-weight:600;
+  font-size:14px;line-height:1.35;color:#fff;letter-spacing:.3px;
+  text-shadow:0 1px 6px rgba(90,61,74,.4);
+}
+.sc-badge{
+  position:absolute;top:9px;left:9px;z-index:2;
+  font-size:9.5px;letter-spacing:1px;padding:3px 8px;border-radius:var(--r-pill);
+  background:rgba(255,253,254,.86);backdrop-filter:blur(8px);
+  color:var(--rose-deep);font-family:var(--sans-cn);font-weight:500;
+}
+.sc-body{padding:11px 12px 13px;display:flex;flex-direction:column;flex:1}
+.sc-name{font-family:var(--serif-cn);font-weight:600;font-size:14.5px;color:var(--t1);letter-spacing:.5px}
+.sc-why{margin-top:7px;flex:1}
+.sc-why .lb{
+  font-size:9.5px;color:var(--gold);letter-spacing:1.5px;
+  font-family:var(--sans-cn);font-weight:500;
+}
+.sc-why .tx{
+  font-size:11.5px;color:var(--t2);line-height:1.65;margin-top:3px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+}
+.sc-meta{
+  font-size:10.5px;color:var(--t3);letter-spacing:.5px;
+  margin-top:9px;padding-top:8px;border-top:.5px dashed var(--pearl);
+  font-family:var(--sans-cn);
+}
+.sc-ops{display:flex;gap:6px;margin-top:9px}
+.sc-btn{
+  flex:1;padding:7px 0;border-radius:var(--r-pill);border:none;cursor:pointer;
+  font-size:11.5px;font-family:var(--sans-cn);text-align:center;letter-spacing:.5px;
+}
+.sc-btn.ghost{
+  background:rgba(255,255,255,.6);color:var(--t2);
+  border:.5px solid rgba(212,165,176,.4);
+}
+.sc-btn.fill{
+  background:linear-gradient(135deg,var(--rose),var(--rose-deep));color:#fff;font-weight:500;
+  box-shadow:0 3px 9px rgba(168,118,130,.28);
+}
+/* Archived cards look faded */
+.sc.arch .sc-cover{filter:saturate(.35) brightness(1.04)}
+.sc.arch .sc-name{color:var(--t2)}
+/* "write your own" dashed card */
+.sc.new{
+  border:1.2px dashed rgba(212,165,176,.6);
+  background:rgba(255,255,255,.42);box-shadow:none;
+  align-items:center;justify-content:center;min-height:210px;padding:20px 14px;
+}
+.sc.new .ic{
+  width:44px;height:44px;border-radius:50%;
+  background:linear-gradient(145deg,var(--rose),var(--rose-deep));
+  display:grid;place-items:center;
+  box-shadow:0 6px 16px rgba(168,118,130,.34),inset 0 1px 0 rgba(255,255,255,.35);
+}
+.sc.new .ic svg{width:21px;height:21px;stroke:#fff;stroke-width:2.1;fill:none;stroke-linecap:round}
+.sc.new .tt{font-family:var(--serif-cn);font-weight:600;font-size:14px;color:var(--t1);margin-top:12px;text-align:center}
+.sc.new .ss{font-size:11px;color:var(--t3);margin-top:5px;text-align:center;line-height:1.6}
+.grid-empty{
+  grid-column:1 / -1;text-align:center;padding:30px 20px;
+  font-family:var(--serif-cn);font-size:13px;color:var(--t3);line-height:1.9;
+}
+/* ===== Cover gradient fallbacks (used when no photo uploaded) ===== */
+.cv1{background-image:linear-gradient(150deg,#F4C2CE,#E07A9B)}
+.cv2{background-image:linear-gradient(150deg,#E4C4F0,#A87FD4)}
+.cv3{background-image:linear-gradient(150deg,#F4DDB8,#C9A268)}
+.cv4{background-image:linear-gradient(150deg,#C4D6F4,#6E8FD4)}
+.cv5{background-image:linear-gradient(150deg,#C8E8DC,#6FAE9B)}
+.cv6{background-image:linear-gradient(150deg,#FCE0E9,#EFA8BE)}
+.cv7{background-image:linear-gradient(150deg,#D9C8F0,#8E7BC4)}
+.cv8{background-image:linear-gradient(150deg,#E8DFF4,#9AA8D4)}
+
+/* ===== Mask ===== */
+.mask{position:fixed;inset:0;background:rgba(90,61,74,.34);backdrop-filter:blur(3px);z-index:80;opacity:0;pointer-events:none;transition:opacity .3s}
+.mask.on{opacity:1;pointer-events:auto}
+
+/* ===== Full page: script detail ===== */
+.page{
+  position:fixed;inset:0;z-index:85;overflow-y:auto;scrollbar-width:none;
+  background:
+    radial-gradient(900px 600px at 15% -10%,#F7D5E0 0%,transparent 55%),
+    radial-gradient(800px 500px at 100% 100%,#F8DDE4 0%,transparent 60%),
+    #FFF6FA;
+  transform:translateX(100%);transition:transform .32s cubic-bezier(.2,.8,.2,1);
+}
+.page::-webkit-scrollbar{display:none}
+.page.on{transform:translateX(0)}
+.pg-inner{max-width:420px;margin:0 auto;padding:0 16px 60px}
+.pg-top{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:calc(env(safe-area-inset-top,20px) + 12px) 0 10px;
+  position:sticky;top:0;z-index:3;
+  background:linear-gradient(180deg,#FFF6FA 62%,rgba(255,246,250,0));
+}
+.pg-back{
+  width:32px;height:32px;border-radius:50%;flex:0 0 auto;
+  display:grid;place-items:center;cursor:pointer;
+  background:rgba(255,253,254,.7);border:1px solid rgba(255,255,255,.8);
+  box-shadow:0 2px 8px rgba(180,120,130,.12);
+}
+.pg-back svg{width:15px;height:15px;stroke:var(--rose-deep);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.pg-ttl{font-family:var(--serif-cn);font-weight:600;font-size:15.5px;color:var(--t1);flex:1;text-align:center;letter-spacing:.5px}
+.pg-sp{width:32px;flex:0 0 auto}
+
+/* detail hero */
+.d-hero{
+  border-radius:var(--r-card);overflow:hidden;position:relative;
+  aspect-ratio:16/9;background-size:cover;background-position:center;
+  display:flex;align-items:flex-end;padding:16px 18px;
+  box-shadow:0 8px 26px rgba(180,120,130,.2);
+}
+.d-hero::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,transparent 35%,rgba(90,61,74,.48) 100%)}
+.d-hero .in{position:relative;z-index:1}
+.d-hero .line{font-family:var(--serif-en);font-style:italic;font-weight:600;font-size:17px;color:#fff;text-shadow:0 1px 8px rgba(90,61,74,.45)}
+.d-hero .cat{font-size:10.5px;color:rgba(255,255,255,.86);letter-spacing:2px;margin-top:5px}
+/* 换封面 —— 压在 hero 右上角的玻璃小胶囊 */
+.d-cv{position:absolute;top:10px;right:10px;z-index:2;display:flex;gap:6px}
+.d-cv button{
+  padding:6px 12px;border-radius:var(--r-pill);cursor:pointer;
+  border:1px solid rgba(255,255,255,.5);
+  background:rgba(90,61,74,.34);
+  backdrop-filter:blur(10px) saturate(160%);-webkit-backdrop-filter:blur(10px) saturate(160%);
+  color:#fff;font-size:11.5px;font-family:var(--sans-cn);letter-spacing:.5px;
+  box-shadow:0 2px 8px rgba(90,61,74,.22),inset 0 1px 0 rgba(255,255,255,.28);
+}
+.d-cv button:active{transform:scale(.96)}
+.d-why{
+  margin-top:14px;padding:14px 16px;border-radius:16px;
+  background:var(--surface);border:1px solid rgba(255,255,255,.85);
+  box-shadow:var(--shadow-card);
+}
+.d-why .lb{font-size:9.5px;color:var(--gold);letter-spacing:2px;font-weight:500}
+.d-why .tx{font-family:var(--serif-cn);font-size:13.5px;line-height:1.85;color:var(--t1);margin-top:5px}
+.d-stat{display:flex;gap:8px;margin-top:12px}
+.d-stat .it{
+  flex:1;text-align:center;padding:11px 6px;border-radius:14px;
+  background:rgba(255,255,255,.6);border:.5px solid rgba(255,255,255,.85);
+}
+.d-stat .n{font-family:var(--serif-en);font-weight:600;font-size:19px;color:var(--rose-deep);line-height:1}
+.d-stat .l{font-size:10px;color:var(--t3);letter-spacing:1px;margin-top:4px}
+
+/* day-count stepper */
+.stepper{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  margin-top:12px;padding:12px 14px;border-radius:16px;
+  background:var(--surface);border:1px solid rgba(255,255,255,.85);
+  box-shadow:var(--shadow-card);
+}
+.stepper .lb{font-size:12.5px;color:var(--t2);letter-spacing:.5px}
+.stepper .lb small{display:block;font-size:10.5px;color:var(--t3);margin-top:3px;letter-spacing:0}
+.st-ctl{display:flex;align-items:center;gap:12px;flex:0 0 auto}
+.st-btn{
+  width:30px;height:30px;border-radius:50%;cursor:pointer;
+  display:grid;place-items:center;border:.5px solid rgba(212,165,176,.5);
+  background:rgba(255,255,255,.7);
+}
+.st-btn svg{width:14px;height:14px;stroke:var(--rose-deep);stroke-width:2;fill:none;stroke-linecap:round}
+.st-btn.off{opacity:.34;pointer-events:none}
+.st-n{font-family:var(--serif-en);font-weight:600;font-size:20px;color:var(--t1);min-width:26px;text-align:center}
+/* ===== Day blocks in detail ===== */
+.dayblk{
+  margin-top:12px;padding:14px 16px;border-radius:16px;
+  background:var(--surface);border:1px solid rgba(255,255,255,.85);
+  box-shadow:0 5px 18px rgba(180,120,130,.12),inset 0 1px 0 rgba(255,255,255,.9);
+  position:relative;
+}
+.dayblk.cur{border-color:rgba(212,165,176,.75);box-shadow:0 0 0 1px rgba(212,165,176,.4),0 6px 22px rgba(180,120,130,.18)}
+.db-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:4px}
+.db-d{display:flex;align-items:baseline;gap:8px}
+.db-d .n{font-family:var(--serif-en);font-weight:600;font-size:17px;color:var(--rose-deep);letter-spacing:1px}
+.db-d .dt{font-size:10.5px;color:var(--t3);letter-spacing:1px;font-family:var(--sans-en)}
+.db-tag{
+  font-size:9.5px;letter-spacing:1px;padding:3px 9px;border-radius:var(--r-pill);
+  background:rgba(212,165,176,.16);color:var(--rose-deep);font-weight:500;
+}
+.db-tag.past{background:rgba(184,154,170,.14);color:var(--t3)}
+.act{padding:11px 0 2px;position:relative;padding-left:15px}
+.act + .act{border-top:.5px dashed rgba(212,165,176,.3)}
+.act::before{
+  content:'';position:absolute;left:0;top:14px;bottom:5px;width:2px;
+  background:linear-gradient(180deg,var(--rose),transparent);border-radius:2px;opacity:.5;
+}
+.act-lb{
+  font-family:var(--serif-cn);font-size:10.5px;color:var(--rose-deep);
+  letter-spacing:1.5px;display:flex;align-items:center;justify-content:space-between;gap:8px;
+}
+.act-lb .del{font-size:10.5px;color:var(--t3);cursor:pointer;letter-spacing:.5px;font-family:var(--sans-cn)}
+.act-tx{
+  font-family:var(--serif-cn);font-weight:500;font-size:13.5px;line-height:1.9;
+  color:var(--t1);margin-top:4px;white-space:pre-wrap;cursor:pointer;
+}
+.act-tx.empty{color:var(--t3);font-family:var(--sans-cn);font-size:12.5px;font-weight:400}
+.act-add{
+  display:flex;align-items:center;gap:6px;margin-top:11px;padding-top:10px;
+  border-top:.5px dashed var(--pearl);
+  font-size:11.5px;color:var(--t3);cursor:pointer;letter-spacing:.5px;
+}
+.act-add svg{width:12px;height:12px;stroke:currentColor;stroke-width:1.8;fill:none;stroke-linecap:round}
+
+/* detail bottom actions */
+.d-ops{display:flex;flex-direction:column;gap:9px;margin-top:20px}
+.d-op{
+  padding:13px 0;border-radius:var(--r-pill);border:none;cursor:pointer;
+  font-size:13.5px;font-family:var(--sans-cn);letter-spacing:1px;text-align:center;
+}
+.d-op.fill{
+  background:linear-gradient(135deg,var(--rose),var(--rose-deep));color:#fff;font-weight:500;
+  box-shadow:0 5px 16px rgba(168,118,130,.32);
+}
+.d-op.ghost{background:rgba(255,255,255,.66);color:var(--t2);border:.5px solid rgba(212,165,176,.45)}
+.d-op.warn{background:rgba(255,255,255,.66);color:var(--t2);border:.5px solid var(--pearl)}
+.d-op:active{transform:scale(.985)}
+/* ===== Bottom sheet (write an act / create a script) ===== */
+.sheet{
+  position:fixed;left:0;right:0;bottom:0;z-index:90;
+  max-width:420px;margin:0 auto;
+  background:var(--surface-solid);
+  border-radius:24px 24px 0 0;
+  box-shadow:0 -10px 40px rgba(160,100,110,.24);
+  transform:translateY(110%);transition:transform .34s cubic-bezier(.2,.8,.2,1);
+  padding:18px 18px calc(20px + env(safe-area-inset-bottom));
+  max-height:86vh;overflow-y:auto;scrollbar-width:none;
+}
+.sheet::-webkit-scrollbar{display:none}
+.sheet.on{transform:translateY(0)}
+.sh-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:4px}
+.sh-ttl{font-family:var(--serif-cn);font-weight:600;font-size:15.5px;color:var(--t1);letter-spacing:.5px}
+.sh-cancel{font-size:13px;color:var(--t2);cursor:pointer;padding:4px}
+.sh-ok{
+  padding:7px 17px;border-radius:var(--r-pill);border:none;cursor:pointer;
+  background:linear-gradient(135deg,var(--rose),var(--rose-deep));color:#fff;
+  font-size:13px;font-weight:500;font-family:var(--sans-cn);
+  box-shadow:0 3px 10px rgba(168,118,130,.3);
+}
+.sh-sub{font-size:11.5px;color:var(--t3);letter-spacing:.5px;margin-bottom:14px;line-height:1.6}
+.sh-lb{
+  font-size:10px;color:var(--t3);letter-spacing:2.5px;font-family:var(--sans-en);
+  font-weight:500;text-transform:uppercase;margin:16px 2px 8px;
+}
+.sh-lb:first-of-type{margin-top:6px}
+.sh-in{
+  width:100%;padding:12px 14px;border-radius:14px;
+  border:1px solid var(--pearl);background:rgba(255,250,252,.9);
+  font-size:14px;color:var(--t1);outline:none;font-family:var(--sans-cn);
+}
+.sh-in:focus{border-color:var(--rose)}
+.sh-ta{
+  width:100%;min-height:150px;padding:14px;border-radius:16px;
+  border:1px solid var(--pearl);background:rgba(255,250,252,.9);
+  font-family:var(--serif-cn);font-size:14.5px;line-height:1.9;color:var(--t1);
+  outline:none;resize:vertical;
+}
+.sh-ta:focus{border-color:var(--rose)}
+.sh-ta::placeholder,.sh-in::placeholder{color:var(--t3);font-family:var(--sans-cn);font-size:13.5px}
+.sh-prev{
+  margin-top:9px;padding:11px 13px;border-radius:13px;
+  background:rgba(212,165,176,.09);border:.5px solid rgba(212,165,176,.28);
+}
+.sh-prev .lb{font-size:10px;color:var(--rose-deep);letter-spacing:1.5px;margin-bottom:4px}
+.sh-prev .tx{
+  font-family:var(--serif-cn);font-size:12.5px;line-height:1.8;color:var(--t2);
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;
+}
+/* cover picker inside create sheet */
+.cv-pick{display:flex;gap:9px;align-items:center}
+.cv-slot{
+  width:66px;height:88px;border-radius:13px;flex:0 0 auto;
+  background-size:cover;background-position:center;cursor:pointer;position:relative;
+  border:1px solid rgba(255,255,255,.75);box-shadow:0 3px 10px rgba(180,120,130,.12);
+  overflow:hidden;
+}
+.cv-slot.add{
+  background:rgba(255,255,255,.5);border:1.2px dashed rgba(212,165,176,.55);
+  display:grid;place-items:center;box-shadow:none;
+}
+.cv-slot.add svg{width:19px;height:19px;stroke:var(--t3);stroke-width:1.7;fill:none;stroke-linecap:round}
+.cv-slot .del{
+  position:absolute;top:3px;right:3px;width:18px;height:18px;border-radius:50%;
+  background:rgba(90,61,74,.62);color:#fff;display:grid;place-items:center;
+  font-size:11px;line-height:1;backdrop-filter:blur(6px);
+}
+.cv-hint{font-size:11px;color:var(--t3);line-height:1.7;flex:1}
+.sh-chips{display:flex;gap:6px;flex-wrap:wrap}
+.sh-chip{
+  padding:7px 14px;border-radius:var(--r-pill);font-size:12.5px;color:var(--t2);
+  cursor:pointer;border:.5px solid rgba(212,165,176,.4);background:rgba(255,255,255,.6);
+  font-family:var(--sans-cn);transition:all .2s;
+}
+.sh-chip.on{
+  background:linear-gradient(135deg,var(--rose),var(--rose-deep));color:#fff;
+  border-color:transparent;font-weight:500;box-shadow:0 2px 7px rgba(168,118,130,.28);
+}
+.sh-chip.add{color:var(--rose-deep);border-style:dashed}
+
+/* ===== Confirm dialog（不用系统 confirm —— 那个丑，而且被浏览器屏蔽过一次就再也弹不出来） ===== */
+.cfm{
+  position:fixed;inset:0;z-index:95;display:grid;place-items:center;padding:0 34px;
+  opacity:0;pointer-events:none;transition:opacity .24s;
+}
+.cfm.on{opacity:1;pointer-events:auto}
+.cfm-bd{
+  position:absolute;inset:0;background:rgba(90,61,74,.36);
+  backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+}
+.cfm-box{
+  position:relative;width:100%;max-width:300px;
+  background:rgba(255,253,254,.94);
+  backdrop-filter:blur(30px) saturate(180%);
+  -webkit-backdrop-filter:blur(30px) saturate(180%);
+  border:1px solid rgba(255,255,255,.9);border-radius:22px;
+  box-shadow:0 18px 48px rgba(160,100,110,.28),inset 0 1px 0 rgba(255,255,255,.95);
+  padding:22px 20px 16px;text-align:center;
+  transform:scale(.94);transition:transform .26s cubic-bezier(.2,.8,.2,1);
+}
+.cfm.on .cfm-box{transform:scale(1)}
+.cfm-tx{
+  font-family:var(--serif-cn);font-weight:500;font-size:14.5px;line-height:1.9;
+  color:var(--t1);margin-bottom:18px;
+}
+.cfm-ops{display:flex;gap:9px}
+.cfm-op{
+  flex:1;padding:11px 0;border-radius:var(--r-pill);border:none;cursor:pointer;
+  font-size:13.5px;font-family:var(--sans-cn);letter-spacing:1px;
+}
+.cfm-op.no{background:rgba(255,255,255,.72);color:var(--t2);border:.5px solid var(--pearl)}
+.cfm-op.yes{
+  background:linear-gradient(135deg,var(--rose),var(--rose-deep));color:#fff;font-weight:500;
+  box-shadow:0 4px 13px rgba(168,118,130,.32);
+}
+.cfm-op:active{transform:scale(.97)}
+
+/* ===== Toast ===== */
+.toast{
+  position:fixed;left:50%;top:22%;transform:translate(-50%,-8px);z-index:99;
+  padding:10px 18px;border-radius:var(--r-pill);
+  background:rgba(90,61,74,.88);color:#fff;font-size:12.5px;
+  opacity:0;pointer-events:none;transition:all .3s;
+  font-family:var(--sans-cn);letter-spacing:.5px;max-width:78%;text-align:center;line-height:1.6;
+}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+
+/* ===== Tabbar ===== */
+.tabbar-wrap{position:fixed;left:0;right:0;bottom:0;padding:0 12px calc(10px + env(safe-area-inset-bottom));display:flex;justify-content:center;pointer-events:none;z-index:60}
+.tabbar{
+  position:relative;pointer-events:auto;
+  width:100%;max-width:396px;padding:6px 10px;
+  background:rgba(255,253,254,.78);
+  backdrop-filter:blur(40px) saturate(180%);
+  -webkit-backdrop-filter:blur(40px) saturate(180%);
+  border:1px solid rgba(255,255,255,.85);
+  border-radius:var(--r-pill);
+  box-shadow:0 12px 32px rgba(180,120,130,.22),0 2px 6px rgba(180,120,130,.10),inset 0 1px 0 rgba(255,255,255,.9);
+  display:flex;justify-content:space-between;align-items:center;
+}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;padding:2px;color:var(--t3);cursor:pointer;transition:color .2s}
+.tab.on{color:var(--rose-deep)}
+.tab-ic{width:28px;height:24px;display:grid;place-items:center}
+.tab svg{width:21px;height:21px;stroke-linecap:round;stroke-linejoin:round}
+.tab span{font-size:10px;letter-spacing:.5px;font-family:var(--sans-cn);font-weight:500}
+.tab.home{position:relative;flex:0 0 auto;width:60px}
+.tab.home .home-btn{
+  position:absolute;left:50%;top:-22px;transform:translateX(-50%);
+  width:50px;height:50px;border-radius:50%;background:var(--rose);
+  display:grid;place-items:center;color:#fff;
+  box-shadow:0 8px 18px rgba(200,140,150,.42),0 2px 5px rgba(200,140,150,.22),inset 0 1px 0 rgba(255,255,255,.35),inset 0 -2px 4px rgba(140,80,90,.15);
+}
+.tab.home .home-btn svg{width:22px;height:22px;stroke-width:1.8}
+.tab.home span{margin-top:30px;color:var(--rose-deep);font-weight:600}
+</style></head>
+<body>
+<div class="phone">
+
+  <!-- Now playing — horizontal swipe, one script per card -->
+  <div class="sec">
+    <div class="sec-l">
+      <span class="en">Now Playing</span>
+      <span class="cn">正在演</span>
+    </div>
+    <div class="sec-r" id="npCount"></div>
+  </div>
+  <div id="npHost"></div>
+  <div class="np-ind" id="npInd"></div>
+
+  <!-- Library -->
+  <div class="sec">
+    <div class="sec-l">
+      <span class="en">Scripts</span>
+      <span class="cn">剧本库</span>
+    </div>
+    <div class="sec-r" id="libCount"></div>
+  </div>
+  <div class="chips" id="chips"></div>
+  <div class="grid2" id="grid"></div>
+
+  <div style="height:30px"></div>
+</div>
+
+<!-- Mask -->
+<div class="mask" id="mask"></div>
+
+<!-- Script detail page -->
+<div class="page" id="detail">
+  <div class="pg-inner">
+    <div class="pg-top">
+      <div class="pg-back" id="dBack">
+        <svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>
+      </div>
+      <div class="pg-ttl" id="dTtl"></div>
+      <div class="pg-sp"></div>
+    </div>
+    <div id="dBody"></div>
+  </div>
+</div>
+
+<!-- Sheet: write one act -->
+<div class="sheet" id="actSheet">
+  <div class="sh-top">
+    <span class="sh-cancel" id="asCancel">取消</span>
+    <span class="sh-ttl" id="asTtl">写这一幕</span>
+    <button class="sh-ok" id="asOk">保存</button>
+  </div>
+  <div class="sh-sub" id="asSub"></div>
+  <textarea class="sh-ta" id="asTa" placeholder="用「我」和「现在」来写，就像这件事正在发生。&#10;想写多长都可以。"></textarea>
+  <div id="asPrev"></div>
+</div>
+
+<!-- Sheet: create a script -->
+<div class="sheet" id="newSheet">
+  <div class="sh-top">
+    <span class="sh-cancel" id="nsCancel">取消</span>
+    <span class="sh-ttl">自己写一部</span>
+    <button class="sh-ok" id="nsOk">创建</button>
+  </div>
+  <div class="sh-sub">幕可以先空着，每天回来写今天的就行。</div>
+
+  <div class="sh-lb">Name 剧本名</div>
+  <input class="sh-in" id="nsName" placeholder="比如：我和 ta 的七天"/>
+
+  <div class="sh-lb">Category 分类</div>
+  <div class="sh-chips" id="nsCats"></div>
+
+  <div class="sh-lb">Intro 简介 · 选填</div>
+  <input class="sh-in" id="nsWhy" placeholder="一句话提醒自己这部是为什么演的"/>
+
+  <div class="sh-lb">Cover 封面</div>
+  <div class="cv-pick">
+    <div class="cv-slot add" id="nsCv">
+      <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+    </div>
+    <div class="cv-hint">竖版图最好看。<br>不传就用玫瑰渐变底。</div>
+  </div>
+
+  <div class="sh-lb">Days 天数</div>
+  <div class="stepper" style="margin-top:0">
+    <div class="lb">一共演几天<small>之后随时能加、能减</small></div>
+    <div class="st-ctl">
+      <div class="st-btn" id="nsMinus"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></div>
+      <div class="st-n" id="nsDays">7</div>
+      <div class="st-btn" id="nsPlus"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></div>
+    </div>
+  </div>
+  <div style="height:6px"></div>
+</div>
+
+<!-- Sheet: new category -->
+<div class="sheet" id="catSheet">
+  <div class="sh-top">
+    <span class="sh-cancel" id="csCancel">取消</span>
+    <span class="sh-ttl">新建分类</span>
+    <button class="sh-ok" id="csOk">添加</button>
+  </div>
+  <div style="height:14px"></div>
+  <input class="sh-in" id="csName" placeholder="分类名"/>
+  <div style="height:8px"></div>
+</div>
+
+<input type="file" id="cvInput" accept="image/*" style="display:none"/>
+
+<!-- Confirm dialog -->
+<div class="cfm" id="cfm">
+  <div class="cfm-bd" id="cfmBd"></div>
+  <div class="cfm-box">
+    <div class="cfm-tx" id="cfmTx"></div>
+    <div class="cfm-ops">
+      <button class="cfm-op no" id="cfmNo">算了</button>
+      <button class="cfm-op yes" id="cfmYes">确定</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<!-- Tabbar -->
+<div class="tabbar-wrap">
+<nav class="tabbar">
+  <div class="tab" onclick="location.href='affirm.html'"><div class="tab-ic">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65"><path d="M12 3.2c.7 4.5 2.3 6.1 6.8 6.8-4.5.7-6.1 2.3-6.8 6.8-.7-4.5-2.3-6.1-6.8-6.8 4.5-.7 6.1-2.3 6.8-6.8Z"/><path d="M18.5 15.2c.3 2 1 2.7 3 3-2 .3-2.7 1-3 3-.3-2-1-2.7-3-3 2-.3 2.7-1 3-3Z"/></svg>
+  </div><span>肯定语</span></div>
+  <div class="tab" onclick="location.href='gratitude.html'"><div class="tab-ic">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65"><path d="M12 20.2c-1.2-1-7.8-5-7.8-10.5C4.2 6.9 6.1 5 8.7 5c1.5 0 2.7.7 3.3 1.8.6-1.1 1.8-1.8 3.3-1.8 2.6 0 4.5 1.9 4.5 4.7 0 5.5-6.6 9.5-7.8 10.5Z"/></svg>
+  </div><span>感恩</span></div>
+  <div class="tab home" onclick="location.href='home.html'">
+    <div class="home-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4.3 10.2 12 4l7.7 6.2v8.1a1.7 1.7 0 0 1-1.7 1.7H6a1.7 1.7 0 0 1-1.7-1.7z"/><path d="M9.3 20v-5.1a2.7 2.7 0 0 1 5.4 0V20"/></svg>
+    </div>
+    <span>首页</span>
+  </div>
+  <div class="tab on"><div class="tab-ic">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65"><rect x="5" y="3.5" width="14" height="17" rx="3"/><path d="M8.7 7.6h6.6M8.7 11.2h6.6M8.7 14.8h3.8"/></svg>
+  </div><span>剧本</span></div>
+  <div class="tab" onclick="location.href='me.html'"><div class="tab-ic">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65"><circle cx="12" cy="8.2" r="3.6"/><path d="M5.5 20c.4-4 2.7-6.1 6.5-6.1s6.1 2.1 6.5 6.1"/></svg>
+  </div><span>我的</span></div>
+</nav>
+</div>
+
+<script>
+/* ========== Constants ========== */
+const GRADS = {
+  cv1:'linear-gradient(150deg,#F4C2CE,#E07A9B)',
+  cv2:'linear-gradient(150deg,#E4C4F0,#A87FD4)',
+  cv3:'linear-gradient(150deg,#F4DDB8,#C9A268)',
+  cv4:'linear-gradient(150deg,#C4D6F4,#6E8FD4)',
+  cv5:'linear-gradient(150deg,#C8E8DC,#6FAE9B)',
+  cv6:'linear-gradient(150deg,#FCE0E9,#EFA8BE)',
+  cv7:'linear-gradient(150deg,#D9C8F0,#8E7BC4)',
+  cv8:'linear-gradient(150deg,#E8DFF4,#9AA8D4)'
+};
+const CATS = ['爱情','财富','事业','健康','外貌','自我','清理'];
+const MO_EN = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const NP_ACT_MAX = 2;      /* 首页/正在演卡最多铺 2 幕，其余收起 */
+const DAYS_MIN = 1, DAYS_MAX = 30;
+
+/* ========== Date helpers ========== */
+function kOf(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
+function parseK(k){const [y,m,d]=k.split('-').map(Number);return new Date(y,m-1,d)}
+function td(){return kOf(new Date())}
+function shiftK(k,n){const d=parseK(k);d.setDate(d.getDate()+n);return kOf(d)}
+/* 自然日计天：从开启那天算起，中间没写也照样往前走 */
+function dayN(s){
+  if(!s.startDate) return 0;
+  return Math.floor((parseK(td()) - parseK(s.startDate))/864e5) + 1;
+}
+function curDay(s){return Math.min(Math.max(dayN(s),1),s.days)}
+function overrun(s){return s.startDate && dayN(s) > s.days}
+function dateLabel(s,n){
+  if(!s.startDate) return '';
+  const d = parseK(shiftK(s.startDate,n-1));
+  return `${MO_EN[d.getMonth()]} ${d.getDate()}`;
+}
+function actCount(s){return Object.keys(s.acts).reduce((a,k)=>a+(s.acts[k]||[]).length,0)}
+function writtenCount(s){return Object.keys(s.acts).reduce((a,k)=>a+(s.acts[k]||[]).filter(t=>t&&t.trim()).length,0)}
+/* ========== Presets ==========
+   每部 7 天 × 每天 2 幕。幕数按天可增减，所以 acts 是「天 → 幕数组」。
+   封面：cover 是图片路径（放 covers/ 下），没有就退回 grad 渐变。 */
+const PRESETS = [
+{name:'粘人小狗',cat:'爱情',grad:'cv1',cover:'covers/love-dog.jpg',line:'He comes to me.',
+ why:'适合已经有心动的人，想被稳稳地宠着',
+ acts:[
+  ['早上醒来，手机里躺着 ta 昨晚发的消息：「梦到你了。」我笑着回了一个字：「巧。」',
+   '晚上下班，ta 站在楼下等我，手里拎着我说过想喝的那家奶茶，温的。'],
+  ['我随口提了一句最近腰酸，ta 记住了，中午就把热敷袋寄到了我公司。',
+   'ta 打电话过来，没什么事，就是想听我说说今天。我们聊到手机发烫。'],
+  ['开会开到一半，我低头看见 ta 发来一张窗外的云：「像不像你昨天说的那种。」',
+   '回到家 ta 已经放好了洗澡水，还点了一支香。我还没开口，ta 已经把我需要的都准备好了。'],
+  ['ta 在朋友圈发了一张我们的合照，没有配文，就那么放着。',
+   '打车回家的路上 ta 突然牵住我的手，说：「以后都这样走。」'],
+  ['ta 记得我不吃香菜，点单的时候替我说了一遍。我在旁边什么都没做。',
+   '睡前 ta 说：「我今天跟我妈提到你了。」我听见自己心跳的声音。'],
+  ['我心情不好，ta 没有讲道理，只是抱住我，说：「不用解释，我在。」',
+   '半夜醒来，ta 的手一直握着我的。我睡得很沉。'],
+  ['ta 问我：「下个月休假，我们去哪？」我发现自己已经在被算进 ta 的未来里。',
+   '我看着 ta 的侧脸，忽然很确定——我值得被这样爱着，而且这只是开始。']
+ ]},
+{name:'富婆宠爱',cat:'爱情',grad:'cv7',cover:'covers/love-rich.jpg',line:'I am adored.',
+ why:'适合想被高质量、有能力的人捧着的',
+ acts:[
+  ['我走进那家店，店员认得我，直接把我上次看的那只包拿了出来。',
+   'ta 什么都没问，只说：「喜欢就拿着，别看价格。」'],
+  ['早上有人替我把行程排好了，我只需要出现。',
+   '晚上的餐厅是 ta 订的，位置在窗边，我最喜欢的角度。'],
+  ['我提了一句想学花艺，第二天课程的报名信息就发到了我手机上。',
+   'ta 说：「你只管做你喜欢的事，剩下的我来。」'],
+  ['我发现自己已经很久没有为钱皱过眉。',
+   '睡前我算了一下这个月的开销，发现根本不用算。'],
+  ['我随手转发了一个旅行视频，ta 回：「想去？那就订。」',
+   '飞机票的截图很快就来了，两张，靠窗。'],
+  ['朋友问我怎么运气这么好，我说不上来，只知道我值得。',
+   'ta 把一张卡放在桌上，说：「以后不用跟我说要花多少。」'],
+  ['我照镜子的时候看见一个被好好爱着的人。',
+   '我很平静地想：这就是我本来该过的日子。']
+ ]},
+{name:'财富自由',cat:'财富',grad:'cv3',cover:'covers/money-free.jpg',line:'Money loves me.',
+ why:'适合想让钱变成一件轻松事的',
+ acts:[
+  ['早上打开手机，看到一笔没预料到的进账。我笑了一下，说了句「谢谢」。',
+   '晚上结账的时候我没有看价格，只是签了名。'],
+  ['我发现自己已经不再算「够不够」，只在想「想不想」。',
+   '有人主动介绍了一个机会给我，报酬比我开的价还高。'],
+  ['转账短信一条接一条，我看着余额，觉得这很正常。',
+   '我给家里转了一笔钱，没有任何犹豫。'],
+  ['我买下了那件一直放在收藏夹里的东西，付款那一秒毫无负担。',
+   '睡前我想：钱一直在找我，而不是我在追钱。'],
+  ['一个老客户回头找我，条件比上次好。',
+   '我把一部分钱放去投资，很安心。'],
+  ['我意识到我不需要为了钱做我不喜欢的事了。',
+   '我请朋友吃了饭，抢着付了单，很自然。'],
+  ['我看着账户余额，那个数字曾经是我不敢想的。',
+   '我很稳地知道：钱会一直来，因为我本来就丰盛。']
+ ]},
+{name:'升职加薪',cat:'事业',grad:'cv4',cover:'covers/work-raise.jpg',line:'They see me.',
+ why:'适合已经很努力、想被看见的',
+ acts:[
+  ['早会上我说的那个想法，领导当场说：「就按她说的做。」',
+   '下班前收到一封表扬邮件，抄送了全组。'],
+  ['一个重要的项目落到我手上，我知道我接得住。',
+   '有人在走廊叫住我说：「你上次那份东西做得真好。」'],
+  ['领导找我聊了十分钟，问我未来想做什么方向。',
+   '我把最难的一块搞定了，比预计早了两天。'],
+  ['HR 发消息问我有没有时间聊一下。',
+   '晚上我看着邮件里的数字，比我期待的高。'],
+  ['我在会议室里发言，所有人都在听。',
+   '有人开始把我当成那个「可以问」的人。'],
+  ['新的名片印好了，头衔换了。',
+   '我发现自己说话的时候不再需要抢时间。'],
+  ['我复盘了这一周，每一步都在往上走。',
+   '我很确定：我的能力配得上更大的位置，而它已经在给我了。']
+ ]},
+{name:'理想身材',cat:'健康',grad:'cv5',cover:'covers/body-shape.jpg',line:'My body listens.',
+ why:'适合想和身体和好、而不是打仗的',
+ acts:[
+  ['早上醒来身体很轻，我伸了个懒腰，很舒服。',
+   '今天我很自然地想吃干净的东西，没有强迫自己。'],
+  ['我站上体重秤，数字在往我想去的方向走。',
+   '晚上我运动了三十分钟，中途一次都没有想停。'],
+  ['穿上那条旧裤子，腰上多出了一点空隙。',
+   '我照镜子的时候先看见的是好的地方。'],
+  ['有人说我最近气色特别好，问我做了什么。',
+   '我很早就困了，躺下就睡着。'],
+  ['我吃饱就停了，很平静，没有失控。',
+   '走路的时候我发现自己背挺得很直。'],
+  ['我摸到了一直没摸到的那块线条。',
+   '我对身体说了谢谢——它一直在陪我。'],
+  ['我拍了一张照片，很喜欢里面的自己。',
+   '我知道这个状态是我的常态，不是短暂的。']
+ ]},
+{name:'素颜发光',cat:'外貌',grad:'cv6',cover:'covers/face-glow.jpg',line:'I glow, bare.',
+ why:'适合想不靠妆也底气很足的',
+ acts:[
+  ['早上洗完脸，皮肤是透的，我什么都没涂就出门了。',
+   '同事第一句话是：「你今天皮肤好好。」'],
+  ['我照镜子的时候没有先找瑕疵。',
+   '晚上敷面膜的时候我很享受，不是在补救。'],
+  ['我拍了一张没有滤镜的自拍，直接发了出去。',
+   '有人在评论里问我用什么护肤品。'],
+  ['出门前我只用了很少的东西，因为不需要多。',
+   '路过玻璃门看到自己，愣了一下，觉得好看。'],
+  ['我睡了很好的一觉，醒来眼睛不肿。',
+   '我发现自己开始喜欢被拍。'],
+  ['有人说我看起来比去年更年轻。',
+   '我对着镜子笑了一下，眼睛是亮的。'],
+  ['我不再需要靠妆来给自己壮胆。',
+   '我素着一张脸走进人群，很稳。']
+ ]},
+{name:'自我和解',cat:'自我',grad:'cv2',cover:'covers/self-peace.jpg',line:'I am enough.',
+ why:'适合总在跟自己过不去的',
+ acts:[
+  ['早上我没有一睁眼就催自己，我先躺了三分钟。',
+   '今天我做错一件小事，我说了一句「没关系」就过去了。'],
+  ['我拒绝了一个不想去的场合，没有解释太多。',
+   '晚上我什么也没做，就是躺着，心里没有负罪感。'],
+  ['我翻到几年前的照片，对那时候的自己说：谢谢你撑过来了。',
+   '有人夸我，我说了「谢谢」，没有立刻否认。'],
+  ['我发现自己已经很久没有在心里骂过自己。',
+   '我写下三件我做得不错的事，写得很顺。'],
+  ['我允许自己慢一点，世界没有塌。',
+   '我一个人吃了顿饭，很自在。'],
+  ['我原谅了一件一直放不下的事，不是为了别人。',
+   '我睡前跟自己说：你已经足够了。'],
+  ['我看着镜子里的人，第一次觉得那是朋友。',
+   '我很平静：我不需要变成谁，我本来就可以。']
+ ]},
+{name:'去晦气',cat:'清理',grad:'cv8',cover:'covers/clean-luck.jpg',line:'It all clears.',
+ why:'适合最近处处不顺、想清一清的',
+ acts:[
+  ['早上我开窗，风灌进来，屋子里的空气全换了一遍。',
+   '我扔掉了三样一直懒得处理的东西，桌面空了。'],
+  ['我删掉了那个一看到就不舒服的联系人。',
+   '晚上洗澡的时候我想：把不属于我的都冲掉。'],
+  ['一件卡了很久的事，今天忽然顺了。',
+   '我发现自己一整天没有被谁牵着情绪走。'],
+  ['我把旧衣服装了一袋捐掉，很轻。',
+   '有个消息来了，是好消息。'],
+  ['我拒绝了一场消耗我的对话，说完就走。',
+   '我睡得很沉，没有做乱七八糟的梦。'],
+  ['我把该结的账结了，该说的话说了。',
+   '心里那块石头不知道什么时候没了。'],
+  ['我环顾四周，干净、清爽、没有多余的东西。',
+   '我知道从这里开始，来的都是好的。']
+ ]}
+];
+/* ========== State ==========
+   state: 'lib' 未开启 | 'playing' 正在演 | 'done' 演完了 | 'stopped' 不演了
+   acts:  { 1:['第一幕文字','第二幕文字'], 2:[...] }  —— 每天幕数可以不一样 */
+let uid = 0;
+const SCRIPTS = PRESETS.map(p=>{
+  const acts = {};
+  p.acts.forEach((day,i)=>{ acts[i+1] = [...day]; });
+  return {
+    id:'s'+(++uid), name:p.name, cat:p.cat, grad:p.grad, cover:p.cover,
+    line:p.line, why:p.why, days:p.acts.length, acts,
+    state:'lib', startDate:null, preset:true
+  };
+});
+const cats = [...CATS];
+
+/* Demo：让「粘人小狗」和「财富自由」处于正在演，演到第 3 / 第 5 天 */
+(function seed(){
+  const a = SCRIPTS[0];
+  a.state = 'playing'; a.startDate = shiftK(td(),-2);
+  const b = SCRIPTS[2];
+  b.state = 'playing'; b.startDate = shiftK(td(),-4); b.days = 21;
+  for(let d=8;d<=21;d++) b.acts[d] = ['',''];
+})();
+
+let filter = '全部';
+let curId = null;          // 详情页当前剧本
+let newCover = null;       // 创建时选的封面 dataURL
+let newCat = CATS[0];
+let newDays = 7;
+let actCtx = null;         // {sid, day, idx}
+
+/* ========== Cover helper ========== */
+/* 有图用图，没图（或加载失败）用渐变兜底 —— 跟感恩页占位一个逻辑 */
+function coverStyle(s){
+  const grad = GRADS[s.grad] || GRADS.cv1;
+  if(s.coverData) return `background-image:url(${s.coverData})`;
+  if(s.cover) return `background-image:url(${s.cover}),${grad}`;
+  return `background-image:${grad}`;
+}
+function esc(t){
+  return String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+/* ========== 7-day window ==========
+   首页只露 7 天：按当前天所在的那一周切窗口，不用手滑（横滑留给换剧本） */
+function weekWin(s){
+  const n = curDay(s);
+  const wi = Math.floor((n-1)/7);
+  const from = wi*7 + 1;
+  const to = Math.min(from+6, s.days);
+  return {from, to, wi:wi+1, total:Math.ceil(s.days/7)};
+}
+function dotsHtml(s){
+  const n = curDay(s);
+  const w = weekWin(s);
+  let h = '<div class="dots"><div class="dots-row">';
+  for(let d=w.from; d<=w.to; d++){
+    const cls = d < n ? 'done' : (d === n ? 'cur' : '');
+    h += `<div class="dot ${cls}">${d}</div>`;
+  }
+  h += '</div></div>';
+  if(w.total > 1) h += `<div class="dots-wk">第 ${w.wi} 周 · 共 ${w.total} 周</div>`;
+  return h;
+}
+
+/* ========== Render: now playing carousel ========== */
+function renderNP(){
+  const host = document.getElementById('npHost');
+  const ind = document.getElementById('npInd');
+  const cnt = document.getElementById('npCount');
+  const list = SCRIPTS.filter(s=>s.state==='playing');
+  cnt.textContent = list.length ? list.length + ' 部' : '';
+  ind.innerHTML = '';
+  if(!list.length){
+    host.innerHTML = '<div class="np-empty"><span class="en">Nothing playing.</span><span class="cn">还没开始任何剧本<br>从下面挑一部，或者自己写一部</span></div>';
+    return;
+  }
+  const wrap = document.createElement('div');
+  wrap.className = 'np-wrap';
+  wrap.id = 'npWrap';
+  list.forEach(s=>{
+    const n = curDay(s);
+    const acts = s.acts[n] || [];
+    let sceneHtml = '';
+    acts.slice(0,NP_ACT_MAX).forEach((t,i)=>{
+      const empty = !t || !t.trim();
+      sceneHtml += `<div class="np-scene">
+        <span class="lead">Act ${i+1}<span class="cn">第 ${i+1} 幕</span></span>
+        <div class="txt${empty?' empty':''}">${empty?'这一幕还没写 · 点进去写':esc(t)}</div>
+      </div>`;
+    });
+    if(!acts.length){
+      sceneHtml = `<div class="np-scene">
+        <span class="lead">Act 1<span class="cn">第 1 幕</span></span>
+        <div class="txt empty">今天还没有幕 · 点进去加一幕</div>
+      </div>`;
+    }
+    const extra = Math.max(acts.length - NP_ACT_MAX, 0);
+    const moreHtml = extra > 0
+      ? `<div class="np-more"><span>还有 ${extra} 幕</span><svg viewBox="0 0 24 24"><path d="M5 12h13"/><path d="M12.5 6.5 19 12l-6.5 5.5"/></svg></div>`
+      : '';
+    const card = document.createElement('div');
+    card.className = 'np-card';
+    card.innerHTML = `
+      <div class="np-head">
+        <div>
+          <div class="np-name">${esc(s.name)}</div>
+          <div class="np-cat">${esc(s.cat)} · 共 ${s.days} 天</div>
+        </div>
+        <div class="np-day">DAY ${n} / ${s.days}</div>
+      </div>
+      ${dotsHtml(s)}
+      <div class="np-scenes">${sceneHtml}${moreHtml}</div>
+    `;
+    card.addEventListener('click',()=>openDetail(s.id));
+    wrap.appendChild(card);
+    const i = document.createElement('i');
+    ind.appendChild(i);
+  });
+  host.innerHTML = '';
+  host.appendChild(wrap);
+  if(list.length > 1){
+    const dots = [...ind.children];
+    dots[0].classList.add('on');
+    wrap.addEventListener('scroll',()=>{
+      const i = Math.round(wrap.scrollLeft / wrap.clientWidth);
+      dots.forEach((d,j)=>d.classList.toggle('on', j===i));
+    });
+  } else {
+    ind.innerHTML = '';
+  }
+}
+/* ========== Render: chips ========== */
+function renderChips(){
+  const host = document.getElementById('chips');
+  host.innerHTML = '';
+  const archN = SCRIPTS.filter(s=>s.state==='done'||s.state==='stopped').length;
+  /* 「全部」「演过的」「+ 新分类」钉死不参与排序，中间的分类才能挪 */
+  const mk = (label, val, cls)=>{
+    const el = document.createElement('div');
+    el.className = 'chip' + (cls?' '+cls:'') + (filter===val?' on':'');
+    el.textContent = label;
+    el.addEventListener('click',()=>{
+      if(el.dataset.moved){ delete el.dataset.moved; return; }  /* 刚拖完的那一下不算点击 */
+      filter = val; renderChips(); renderGrid();
+    });
+    host.appendChild(el);
+    return el;
+  };
+  mk('全部','全部','fixed');
+  cats.forEach((c,i)=>{
+    const el = mk(c,c);
+    el.dataset.cat = i;
+    bindChipDrag(el, host);
+  });
+  if(archN) mk('演过的 · ' + archN,'演过的','fixed');
+  const add = document.createElement('div');
+  add.className = 'chip add fixed';
+  add.textContent = '+ 新分类';
+  add.addEventListener('click',openCatSheet);
+  host.appendChild(add);
+}
+
+/* 长按胶囊 → 左右拖着挪顺序 */
+function bindChipDrag(el, host){
+  let timer = null, dragging = false, sx = 0;
+  const start = (x)=>{
+    dragging = true; sx = x;
+    host.classList.add('sorting');
+    el.classList.add('drag');
+    if(navigator.vibrate) navigator.vibrate(12);
+  };
+  const move = (x)=>{
+    el.style.transform = `translateX(${x-sx}px) scale(1.08)`;
+    /* 拖动的胶囊中心越过隔壁中心 → 直接把自己插到隔壁那一侧，DOM 顺序就是新顺序 */
+    const me = el.getBoundingClientRect();
+    const mid = me.left + me.width/2;
+    for(const o of [...host.querySelectorAll('.chip[data-cat]')]){
+      if(o===el) continue;
+      const r = o.getBoundingClientRect();
+      const oc = r.left + r.width/2;
+      const oAfter = !!(el.compareDocumentPosition(o) & Node.DOCUMENT_POSITION_FOLLOWING);
+      let moved = false;
+      if(!oAfter && mid < oc){ host.insertBefore(el, o); moved = true; }          /* 往左越过前面那个 */
+      else if(oAfter && mid > oc){ host.insertBefore(el, o.nextSibling); moved = true; }  /* 往右越过后面那个 */
+      if(moved){
+        /* 位置换了，基准跟着挪，手指底下不跳 */
+        sx = x;
+        el.style.transform = 'translateX(0) scale(1.08)';
+        break;
+      }
+    }
+  };
+  const end = ()=>{
+    clearTimeout(timer);
+    if(!dragging) return;
+    dragging = false;
+    el.style.transform = '';
+    el.classList.remove('drag');
+    host.classList.remove('sorting');
+    el.dataset.moved = '1';
+    /* DOM 顺序回写进 cats */
+    cats.length = 0;
+    host.querySelectorAll('.chip[data-cat]').forEach(n=>cats.push(n.textContent));
+    renderChips(); renderGrid();
+    showToast('顺序改好了');
+  };
+  el.addEventListener('touchstart',e=>{
+    const x = e.touches[0].clientX;
+    timer = setTimeout(()=>start(x),420);
+  },{passive:true});
+  el.addEventListener('touchmove',e=>{
+    if(!dragging){ clearTimeout(timer); return; }
+    e.preventDefault();
+    move(e.touches[0].clientX);
+  },{passive:false});
+  el.addEventListener('touchend',end);
+  el.addEventListener('touchcancel',end);
+  /* 桌面上也能试 */
+  el.addEventListener('mousedown',e=>{
+    const x = e.clientX;
+    timer = setTimeout(()=>{
+      start(x);
+      const mm = ev=>move(ev.clientX);
+      const mu = ()=>{ document.removeEventListener('mousemove',mm); document.removeEventListener('mouseup',mu); end(); };
+      document.addEventListener('mousemove',mm);
+      document.addEventListener('mouseup',mu);
+    },420);
+  });
+  el.addEventListener('mouseup',()=>clearTimeout(timer));
+  el.addEventListener('mouseleave',()=>clearTimeout(timer));
+}
+
+/* ========== Render: library grid ========== */
+function renderGrid(){
+  const host = document.getElementById('grid');
+  const cnt = document.getElementById('libCount');
+  host.innerHTML = '';
+  const arch = filter === '演过的';
+  let list = SCRIPTS.filter(s=>{
+    if(arch) return s.state==='done' || s.state==='stopped';
+    if(s.state==='done' || s.state==='stopped') return false;
+    return filter==='全部' ? true : s.cat===filter;
+  });
+  cnt.textContent = list.length + ' 部';
+
+  /* 归档区不放「自己写一部」，其他分类下第一张就是新建卡 */
+  if(!arch){
+    const nw = document.createElement('div');
+    nw.className = 'sc new';
+    const tt = filter==='全部' ? '自己写一部' : `在${filter}里写一部`;
+    nw.innerHTML = `
+      <div class="ic"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></div>
+      <div class="tt">${esc(tt)}</div>
+    `;
+    nw.addEventListener('click',()=>openNewSheet(filter==='全部'?null:filter));
+    host.appendChild(nw);
+  }
+
+  if(!list.length && arch){
+    host.innerHTML = '<div class="grid-empty">还没有演过的剧本<br>演完或者停掉的会收在这里</div>';
+    return;
+  }
+  list.forEach(s=>{
+    const card = document.createElement('div');
+    card.className = 'sc' + (arch ? ' arch' : '');
+    let badge = '';
+    if(s.state==='playing') badge = `<div class="sc-badge">DAY ${curDay(s)} / ${s.days}</div>`;
+    else if(s.state==='done') badge = '<div class="sc-badge">已完成</div>';
+    else if(s.state==='stopped') badge = '<div class="sc-badge">已停止</div>';
+    const w = writtenCount(s), a = actCount(s);
+    const btns = arch
+      ? `<button class="sc-btn ghost" data-act="del">删除</button><button class="sc-btn fill" data-act="again">再演一轮</button>`
+      : (s.state==='playing'
+        ? `<button class="sc-btn fill" data-act="open" style="flex:1">进去演</button>`
+        : `<button class="sc-btn ghost" data-act="open">详情</button><button class="sc-btn fill" data-act="start">开启</button>`);
+    card.innerHTML = `
+      <div class="sc-cover ${s.grad}" style="${coverStyle(s)}">
+        ${badge}
+        <div class="line">${esc(s.line||'')}</div>
+      </div>
+      <div class="sc-body">
+        <div class="sc-name">${esc(s.name)}</div>
+        <div class="sc-why">
+          <div class="lb">简介</div>
+          <div class="tx">${esc(s.why||'自己写的剧本，自己最清楚为什么')}</div>
+        </div>
+        <div class="sc-meta">${s.days} 天 · ${a} 幕${a?` · 已写 ${w}`:''}</div>
+        <div class="sc-ops">${btns}</div>
+      </div>
+    `;
+    card.querySelector('.sc-cover').addEventListener('click',()=>openDetail(s.id));
+    card.querySelector('.sc-name').addEventListener('click',()=>openDetail(s.id));
+    card.querySelectorAll('[data-act]').forEach(b=>{
+      b.addEventListener('click',ev=>{
+        ev.stopPropagation();
+        const a = b.dataset.act;
+        if(a==='open') openDetail(s.id);
+        else if(a==='start') startScript(s.id);
+        else if(a==='again') playAgain(s.id);
+        else if(a==='del') deleteScript(s.id);
+      });
+    });
+    host.appendChild(card);
+  });
+}
+
+function renderAll(){ renderNP(); renderChips(); renderGrid(); }
+/* ========== Detail page ========== */
+const detail = document.getElementById('detail');
+function openDetail(id){
+  curId = id;
+  renderDetail();
+  detail.classList.add('on');
+  detail.scrollTop = 0;
+}
+function closeDetail(){ detail.classList.remove('on'); curId = null; }
+document.getElementById('dBack').addEventListener('click',closeDetail);
+
+function renderDetail(){
+  const s = SCRIPTS.find(x=>x.id===curId);
+  if(!s) return;
+  document.getElementById('dTtl').textContent = s.name;
+  const body = document.getElementById('dBody');
+  const playing = s.state==='playing';
+  const n = playing ? curDay(s) : 0;
+  const arch = s.state==='done' || s.state==='stopped';
+
+  let h = `
+    <div class="d-hero ${s.grad}" style="${coverStyle(s)}">
+      <div class="d-cv">
+        <button data-cv="pick">换封面</button>
+        ${s.coverData?'<button data-cv="drop">移除</button>':''}
+      </div>
+      <div class="in">
+        <div class="line">${esc(s.line||'')}</div>
+        <div class="cat">${esc(s.cat)}${playing?` · DAY ${n} / ${s.days}`:''}${arch?(s.state==='done'?' · 已完成':' · 已停止'):''}</div>
+      </div>
+    </div>
+    <div class="d-why">
+      <div class="lb">简介</div>
+      <div class="tx">${esc(s.why||'这部是我自己写的。')}</div>
+    </div>
+    <div class="d-stat">
+      <div class="it"><div class="n">${s.days}</div><div class="l">天</div></div>
+      <div class="it"><div class="n">${actCount(s)}</div><div class="l">幕</div></div>
+      <div class="it"><div class="n">${writtenCount(s)}</div><div class="l">已写</div></div>
+    </div>
+  `;
+
+  /* 天数步进器：已经演过的天不能删 */
+  const floor = playing ? Math.max(n,1) : 1;
+  h += `
+    <div class="stepper">
+      <div class="lb">天数</div>
+      <div class="st-ctl">
+        <div class="st-btn ${s.days<=floor?'off':''}" id="dMinus"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></div>
+        <div class="st-n">${s.days}</div>
+        <div class="st-btn ${s.days>=DAYS_MAX?'off':''}" id="dPlus"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></div>
+      </div>
+    </div>
+  `;
+
+  if(overrun(s)){
+    h += `<div class="d-why" style="border-color:rgba(201,168,122,.5)">
+      <div class="lb">走完一轮了</div>
+      <div class="tx">${s.days} 天都过去了。可以「演完了」收进演过的，也可以「再演一轮」从 DAY 1 重新开始。</div>
+    </div>`;
+  }
+
+  /* 逐天列出 */
+  for(let d=1; d<=s.days; d++){
+    const acts = s.acts[d] || [];
+    const isCur = playing && d===n;
+    let tag = '';
+    if(playing){
+      if(d<n) tag = '<div class="db-tag past">已过去</div>';
+      else if(d===n) tag = '<div class="db-tag">今天</div>';
+    }
+    h += `<div class="dayblk${isCur?' cur':''}">
+      <div class="db-head">
+        <div class="db-d"><span class="n">DAY ${d}</span><span class="dt">${dateLabel(s,d)}</span></div>
+        ${tag}
+      </div>`;
+    if(!acts.length){
+      h += `<div class="act">
+        <div class="act-lb"><span>第 1 幕</span></div>
+        <div class="act-tx empty" data-w="${d}" data-i="0">这天还没有幕 · 点这里写</div>
+      </div>`;
+    }
+    acts.forEach((t,i)=>{
+      const empty = !t || !t.trim();
+      h += `<div class="act">
+        <div class="act-lb">
+          <span>第 ${i+1} 幕</span>
+          ${acts.length>1?`<span class="del" data-dw="${d}" data-di="${i}">删除</span>`:''}
+        </div>
+        <div class="act-tx${empty?' empty':''}" data-w="${d}" data-i="${i}">${empty?'这一幕还没写 · 点这里写':esc(t)}</div>
+      </div>`;
+    });
+    h += `<div class="act-add" data-add="${d}">
+      <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+      <span>给 DAY ${d} 加一幕</span>
+    </div></div>`;
+  }
+
+  /* 底部动作 */
+  h += '<div class="d-ops">';
+  if(s.state==='lib'){
+    h += `<button class="d-op fill" data-do="start">开启这部剧本</button>`;
+  } else if(playing){
+    h += `<button class="d-op fill" data-do="finish">演完了</button>
+          <button class="d-op ghost" data-do="again">再演一轮</button>
+          <button class="d-op warn" data-do="stop">不演了</button>`;
+  } else {
+    h += `<button class="d-op fill" data-do="again">再演一轮</button>
+          <button class="d-op warn" data-do="del">彻底删除</button>`;
+  }
+  h += '</div><div style="height:20px"></div>';
+  body.innerHTML = h;
+  bindDetail(s);
+}
+function bindDetail(s){
+  const body = document.getElementById('dBody');
+  /* 点幕 → 写 */
+  body.querySelectorAll('[data-w]').forEach(el=>{
+    el.addEventListener('click',()=>{
+      const d = +el.dataset.w, i = +el.dataset.i;
+      if(!s.acts[d]) s.acts[d] = [];
+      if(s.acts[d].length <= i) s.acts[d][i] = '';
+      openActSheet(s.id, d, i);
+    });
+  });
+  /* 删幕 */
+  body.querySelectorAll('[data-dw]').forEach(el=>{
+    el.addEventListener('click',ev=>{
+      ev.stopPropagation();
+      const d = +el.dataset.dw, i = +el.dataset.di;
+      const t = (s.acts[d]||[])[i];
+      const kill = ()=>{
+        s.acts[d].splice(i,1);
+        renderDetail(); renderAll(); showToast('已删除这一幕');
+      };
+      if(t && t.trim()) ask(`DAY ${d} 第 ${i+1} 幕写了内容，删掉找不回来。`, kill);
+      else kill();
+    });
+  });
+  /* 加幕 */
+  body.querySelectorAll('[data-add]').forEach(el=>{
+    el.addEventListener('click',()=>{
+      const d = +el.dataset.add;
+      if(!s.acts[d]) s.acts[d] = [];
+      s.acts[d].push('');
+      const i = s.acts[d].length - 1;
+      renderDetail(); renderAll();
+      openActSheet(s.id, d, i);
+    });
+  });
+  /* 天数增减 */
+  const minus = document.getElementById('dMinus');
+  const plus = document.getElementById('dPlus');
+  if(plus) plus.addEventListener('click',()=>{
+    if(s.days >= DAYS_MAX) return;
+    s.days++;
+    if(!s.acts[s.days]) s.acts[s.days] = [''];
+    renderDetail(); renderAll(); showToast(`加到 ${s.days} 天 · DAY ${s.days} 的幕等你写`);
+  });
+  if(minus) minus.addEventListener('click',()=>{
+    const floor = s.state==='playing' ? Math.max(curDay(s),1) : 1;
+    if(s.days <= floor){
+      showToast(s.state==='playing' ? `已经演到 DAY ${floor} 了，演过的天删不掉` : '最少 1 天');
+      return;
+    }
+    const d = s.days;
+    const w = (s.acts[d]||[]).filter(t=>t&&t.trim()).length;
+    const kill = ()=>{
+      delete s.acts[d];
+      s.days--;
+      renderDetail(); renderAll(); showToast(`减到 ${s.days} 天`);
+    };
+    if(w) ask(`DAY ${d} 已经写了 ${w} 幕，删掉就找不回来了。`, kill);
+    else kill();
+  });
+  /* 换封面 / 移除封面 */
+  body.querySelectorAll('[data-cv]').forEach(b=>{
+    b.addEventListener('click',()=>{
+      if(b.dataset.cv==='pick'){ pickCover(s.id); return; }
+      ask('把封面换回原来的渐变？',()=>{
+        s.coverData = null;
+        renderDetail(); renderAll(); showToast('封面已移除');
+      });
+    });
+  });
+  /* 底部动作 */
+  body.querySelectorAll('[data-do]').forEach(b=>{
+    b.addEventListener('click',()=>{
+      const a = b.dataset.do;
+      if(a==='start'){ startScript(s.id); renderDetail(); }
+      else if(a==='finish'){ s.state='done'; s.startDate=null; closeDetail(); renderAll(); showToast('已收进「演过的」'); }
+      else if(a==='stop'){
+        ask('不演了？进度会停在这里，剧本收进「演过的」。',()=>{
+          s.state='stopped'; s.startDate=null; closeDetail(); renderAll(); showToast('已停止');
+        });
+      }
+      else if(a==='again'){ playAgain(s.id); renderDetail(); }
+      else if(a==='del'){ deleteScript(s.id, closeDetail); }
+    });
+  });
+}
+
+/* ========== Script actions ========== */
+function startScript(id){
+  const s = SCRIPTS.find(x=>x.id===id);
+  s.state = 'playing';
+  s.startDate = td();
+  renderAll();
+  showToast(`${s.name} 开始了 · 今天是 DAY 1`);
+}
+function playAgain(id){
+  const s = SCRIPTS.find(x=>x.id===id);
+  s.state = 'playing';
+  s.startDate = td();
+  renderAll();
+  showToast('从 DAY 1 重新开始 · 你写的幕都留着');
+}
+function deleteScript(id, after){
+  const s = SCRIPTS.find(x=>x.id===id);
+  const a = actCount(s);
+  ask(`彻底删除《${s.name}》？这部的 ${a} 幕会一起消失，找不回来。`,()=>{
+    SCRIPTS.splice(SCRIPTS.indexOf(s),1);
+    renderAll(); showToast('已删除');
+    if(after) after();
+  });
+}
+/* ========== Confirm ==========
+   自己画的确认框。系统 confirm 在 file:// 下被"阻止此页面弹出对话框"勾掉一次之后
+   就永远返回 false —— 按钮看着能点、点了什么都不发生，跟坏了一样。 */
+const cfm = document.getElementById('cfm');
+let cfmCb = null;
+function ask(text, onYes){
+  document.getElementById('cfmTx').textContent = text;
+  cfmCb = onYes;
+  cfm.classList.add('on');
+}
+function cfmClose(){ cfm.classList.remove('on'); cfmCb = null; }
+document.getElementById('cfmNo').addEventListener('click',cfmClose);
+document.getElementById('cfmBd').addEventListener('click',cfmClose);
+document.getElementById('cfmYes').addEventListener('click',()=>{
+  const cb = cfmCb; cfmClose(); if(cb) cb();
+});
+
+/* ========== Sheets ========== */
+const mask = document.getElementById('mask');
+const actSheet = document.getElementById('actSheet');
+const newSheet = document.getElementById('newSheet');
+const catSheet = document.getElementById('catSheet');
+const asTa = document.getElementById('asTa');
+
+function openSheet(el){ mask.classList.add('on'); el.classList.add('on'); }
+function closeSheets(){
+  mask.classList.remove('on');
+  [actSheet,newSheet,catSheet].forEach(s=>s.classList.remove('on'));
+  actCtx = null;
+}
+mask.addEventListener('click',closeSheets);
+document.getElementById('asCancel').addEventListener('click',closeSheets);
+document.getElementById('nsCancel').addEventListener('click',closeSheets);
+document.getElementById('csCancel').addEventListener('click',closeSheets);
+
+/* --- write one act --- */
+function openActSheet(sid, day, idx){
+  const s = SCRIPTS.find(x=>x.id===sid);
+  actCtx = {sid, day, idx};
+  document.getElementById('asTtl').textContent = `DAY ${day} · 第 ${idx+1} 幕`;
+  document.getElementById('asSub').textContent = `${s.name} · ${dateLabel(s,day)||'还没开启'}`;
+  asTa.value = (s.acts[day]||[])[idx] || '';
+  /* 顺手把前一幕给你看着，接得上 */
+  const prev = document.getElementById('asPrev');
+  let pt = '';
+  if(idx > 0) pt = (s.acts[day]||[])[idx-1];
+  else if(day > 1){ const pa = s.acts[day-1]||[]; pt = pa[pa.length-1]; }
+  if(pt && pt.trim()){
+    prev.innerHTML = `<div class="sh-prev"><div class="lb">${idx>0?'上一幕':`DAY ${day-1} 最后一幕`}</div><div class="tx">${esc(pt)}</div></div>`;
+  } else prev.innerHTML = '';
+  openSheet(actSheet);
+  setTimeout(()=>asTa.focus(),340);
+}
+document.getElementById('asOk').addEventListener('click',()=>{
+  if(!actCtx) return;
+  const {sid,day,idx} = actCtx;
+  const s = SCRIPTS.find(x=>x.id===sid);
+  if(!s.acts[day]) s.acts[day] = [];
+  while(s.acts[day].length <= idx) s.acts[day].push('');
+  s.acts[day][idx] = asTa.value.trim();
+  closeSheets();
+  if(curId) renderDetail();
+  renderAll();
+  showToast('已保存');
+});
+
+/* --- create a script --- */
+function openNewSheet(presetCat){
+  newCover = null;
+  newCat = presetCat || cats[0];
+  newDays = 7;
+  document.getElementById('nsName').value = '';
+  document.getElementById('nsWhy').value = '';
+  document.getElementById('nsDays').textContent = newDays;
+  const cv = document.getElementById('nsCv');
+  cv.className = 'cv-slot add';
+  cv.style.backgroundImage = '';
+  cv.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>';
+  renderNsCats();
+  openSheet(newSheet);
+  setTimeout(()=>document.getElementById('nsName').focus(),340);
+}
+function renderNsCats(){
+  const host = document.getElementById('nsCats');
+  host.innerHTML = '';
+  cats.forEach(c=>{
+    const el = document.createElement('div');
+    el.className = 'sh-chip' + (newCat===c?' on':'');
+    el.textContent = c;
+    el.addEventListener('click',()=>{ newCat = c; renderNsCats(); });
+    host.appendChild(el);
+  });
+}
+document.getElementById('nsPlus').addEventListener('click',()=>{
+  if(newDays >= DAYS_MAX) return;
+  newDays++; document.getElementById('nsDays').textContent = newDays;
+});
+document.getElementById('nsMinus').addEventListener('click',()=>{
+  if(newDays <= DAYS_MIN) return;
+  newDays--; document.getElementById('nsDays').textContent = newDays;
+});
+const cvInput = document.getElementById('cvInput');
+/* 同一个 file input 两处用：null = 新建抽屉里那格，有 id = 给已有的剧本换封面 */
+let cvTarget = null;
+function pickCover(id){ cvTarget = id; cvInput.click(); }
+document.getElementById('nsCv').addEventListener('click',()=>{
+  cvTarget = null;
+  cvInput.click();
+});
+cvInput.addEventListener('change',e=>{
+  const f = (e.target.files||[])[0];
+  const tgt = cvTarget;
+  cvTarget = null;
+  cvInput.value = '';
+  if(!f) return;
+  const r = new FileReader();
+  r.onload = ev=>{
+    if(tgt){
+      const s = SCRIPTS.find(x=>x.id===tgt);
+      if(!s) return;
+      s.coverData = ev.target.result;
+      renderDetail(); renderAll(); showToast('封面换好了');
+      return;
+    }
+    newCover = ev.target.result;
+    const cv = document.getElementById('nsCv');
+    cv.className = 'cv-slot';
+    cv.style.backgroundImage = `url(${newCover})`;
+    cv.innerHTML = '<div class="del">×</div>';
+    cv.querySelector('.del').addEventListener('click',ev2=>{
+      ev2.stopPropagation();
+      newCover = null;
+      cv.className = 'cv-slot add';
+      cv.style.backgroundImage = '';
+      cv.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>';
+    });
+  };
+  r.readAsDataURL(f);
+});
+document.getElementById('nsOk').addEventListener('click',()=>{
+  const name = document.getElementById('nsName').value.trim();
+  if(!name){ showToast('先给剧本起个名字'); return; }
+  const why = document.getElementById('nsWhy').value.trim();
+  const acts = {};
+  for(let d=1; d<=newDays; d++) acts[d] = [''];
+  const gk = 'cv' + (1 + (SCRIPTS.length % 8));
+  const s = {
+    id:'s'+(++uid), name, cat:newCat, grad:gk, cover:null, coverData:newCover,
+    line:'', why, days:newDays, acts, state:'lib', startDate:null, preset:false
+  };
+  SCRIPTS.unshift(s);
+  closeSheets();
+  filter = newCat;
+  renderAll();
+  openDetail(s.id);
+  showToast('建好了 · 幕可以每天回来写');
+});
+
+/* --- new category --- */
+function openCatSheet(){
+  document.getElementById('csName').value = '';
+  openSheet(catSheet);
+  setTimeout(()=>document.getElementById('csName').focus(),340);
+}
+document.getElementById('csOk').addEventListener('click',addCat);
+document.getElementById('csName').addEventListener('keydown',e=>{
+  if(e.key==='Enter'){ e.preventDefault(); addCat(); }
+});
+function addCat(){
+  const v = document.getElementById('csName').value.trim();
+  if(!v){ showToast('写个分类名'); return; }
+  if(cats.includes(v)){ showToast('已经有这个分类了'); closeSheets(); filter=v; renderAll(); return; }
+  cats.push(v);
+  closeSheets();
+  filter = v;
+  renderAll();
+  showToast(`分类「${v}」建好了`);
+}
+
+/* ========== Toast ========== */
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('on');
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(()=>t.classList.remove('on'), 1900);
+}
+
+/* ========== Init ========== */
+renderAll();
+document.addEventListener('keydown',e=>{
+  if(e.key !== 'Escape') return;
+  if(actSheet.classList.contains('on') || newSheet.classList.contains('on') || catSheet.classList.contains('on')) closeSheets();
+  else if(detail.classList.contains('on')) closeDetail();
+});
+</script>
+<script>
+/* PWA —— 装到桌面用。file:// 下不注册（协议不支持），只在 http/https 生效 */
+if("serviceWorker" in navigator && location.protocol.startsWith("http")){
+  window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
+}
+</script>
+</body></html>

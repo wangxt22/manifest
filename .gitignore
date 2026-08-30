@@ -1,0 +1,11 @@
+# 截图和交互草图不用上线，Pages 只需要五个页面 + PWA 资源
+*.png
+!icons/*.png
+!covers/*.jpg
+affirm_mockup.html
+affirm_clock_mockup.html
+
+.DS_Store
+
+# 内部设计文档不公开（含产品决策和主体资质情况）
+DESIGN.md

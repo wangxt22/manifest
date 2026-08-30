@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#FFF3F7">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Reverie">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<title>Reverie · Gratitude</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Inter:wght@400;500;600&family=Noto+Serif+SC:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg-image:none;
+  --bg-gradient:
+    radial-gradient(1200px 800px at 15% -10%,#F5CDDB 0%,transparent 55%),
+    radial-gradient(1000px 700px at 100% 100%,#F6D5DE 0%,transparent 60%),
+    #FFF3F7;
+  --surface:rgba(255,253,254,.88);
+  --surface-solid:#FFFCFD;
+  --pearl:#F1E3E8;
+  --rose:#D4A5B0;
+  --rose-deep:#A87682;
+  --rose-soft:#E9C4CD;
+  --gold:#C9A87A;
+  --t1:#5A3D4A;
+  --t2:#8B6B7A;
+  --t3:#B89AAA;
+  --serif-en:'Cormorant Garamond',serif;
+  --sans-en:'Inter',-apple-system,sans-serif;
+  --serif-cn:'Noto Serif SC',serif;
+  --sans-cn:-apple-system,'PingFang SC',sans-serif;
+  --r-card:20px;
+  --r-pill:999px;
+  --shadow-card:0 6px 24px rgba(180,120,130,.14),inset 0 1px 0 rgba(255,255,255,.9);
+}
+/* Cormorant 老式数字会把 1 写成小写 i —— 数字位强制 lining figures */
+.mo-title .y,.mo-title .m,.mo-nav,.day,.e-date,.e-date .d,.e-more,.ed-date,.today-card{
+  font-variant-numeric:lining-nums;font-feature-settings:"lnum" 1,"onum" 0;
+}
+html,body{height:100%}
+body{
+  font-family:var(--sans-cn);color:var(--t1);font-size:15px;
+  background-color:#FFF3F7;
+  background-image:var(--bg-image),var(--bg-gradient);
+  background-size:cover;background-position:center;
+  background-attachment:fixed;background-repeat:no-repeat;
+  min-height:100vh;overflow-x:hidden;
+  padding-bottom:100px;
+}
+.phone{max-width:420px;margin:0 auto;position:relative;padding:0 14px;padding-top:calc(env(safe-area-inset-top,20px) + 10px)}
+
+/* ===== Month header ===== */
+.mo-head{display:flex;align-items:center;justify-content:space-between;padding:4px 4px 12px}
+.mo-nav{
+  width:30px;height:30px;border-radius:50%;
+  display:grid;place-items:center;cursor:pointer;
+  background:rgba(255,253,254,.6);
+  backdrop-filter:blur(20px) saturate(180%);
+  -webkit-backdrop-filter:blur(20px) saturate(180%);
+  border:1px solid rgba(255,255,255,.75);
+  box-shadow:0 2px 8px rgba(180,120,130,.1);
+}
+.mo-nav svg{width:14px;height:14px;stroke:var(--rose-deep);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.mo-title{text-align:center;flex:1}
+.mo-title .y{font-family:var(--serif-en);font-size:12px;color:var(--t3);letter-spacing:2px;display:block}
+.mo-title .m{font-family:var(--serif-en);font-style:italic;font-weight:600;font-size:24px;color:var(--t1);letter-spacing:.5px;line-height:1.1}
+.mo-title .cn{font-family:var(--serif-cn);font-size:11px;color:var(--t2);letter-spacing:3px;display:block;margin-top:2px}
+
+/* ===== Today entry card ===== */
+.today-card{
+  background:var(--surface);
+  backdrop-filter:blur(24px) saturate(180%);
+  -webkit-backdrop-filter:blur(24px) saturate(180%);
+  border:1px solid rgba(255,255,255,.85);
+  border-radius:var(--r-card);
+  box-shadow:var(--shadow-card);
+  padding:16px 18px;margin-bottom:14px;
+  cursor:pointer;position:relative;overflow:hidden;
+  display:flex;align-items:center;gap:14px;
+}
+.today-card .tc-l{flex:1;min-width:0}
+.today-card .lb{font-size:10px;color:var(--t3);letter-spacing:3px;font-family:var(--sans-en);font-weight:500;text-transform:uppercase}
+.today-card .q{
+  font-family:var(--serif-cn);font-weight:500;font-size:15.5px;
+  color:var(--t1);margin-top:8px;line-height:1.7;
+}
+.today-card .hint{
+  display:flex;align-items:center;gap:5px;margin-top:8px;
+  font-size:11px;color:var(--t3);letter-spacing:.5px;
+}
+.today-card .hint svg{width:11px;height:11px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round}
+/* prominent add button — the single entry point for writing */
+.today-card .tc-add{
+  flex:0 0 auto;position:relative;z-index:1;
+  width:52px;height:52px;border-radius:50%;
+  background:linear-gradient(145deg,var(--rose),var(--rose-deep));
+  display:grid;place-items:center;
+  box-shadow:0 8px 20px rgba(168,118,130,.4),0 2px 6px rgba(168,118,130,.2),
+             inset 0 1px 0 rgba(255,255,255,.38),inset 0 -2px 4px rgba(140,80,90,.16);
+  transition:transform .15s;
+}
+.today-card:active .tc-add{transform:scale(.93)}
+.today-card .tc-add svg{width:24px;height:24px;stroke:#fff;stroke-width:2.1;fill:none;stroke-linecap:round}
+.today-card .tc-add::before{
+  content:'';position:absolute;inset:-7px;border-radius:50%;
+  border:1px solid rgba(212,165,176,.34);
+}
+.today-card::after{
+  content:'';position:absolute;right:-30px;top:-30px;
+  width:110px;height:110px;border-radius:50%;
+  background:radial-gradient(circle,rgba(212,165,176,.18),transparent 70%);
+  pointer-events:none;
+}
+.today-card.done .q{color:var(--t1)}
+.today-card.done .hint{color:var(--t3)}
+/* ===== Calendar ===== */
+.cal-card{
+  background:var(--surface);
+  backdrop-filter:blur(24px) saturate(180%);
+  -webkit-backdrop-filter:blur(24px) saturate(180%);
+  border:1px solid rgba(255,255,255,.85);
+  border-radius:var(--r-card);
+  box-shadow:var(--shadow-card);
+  padding:16px 14px 14px;margin-bottom:16px;
+}
+.wk{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:8px}
+.wk div{
+  text-align:center;font-size:10px;color:var(--t3);
+  font-family:var(--sans-en);font-weight:500;letter-spacing:1px;
+}
+.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.day{
+  aspect-ratio:1;border-radius:50%;
+  display:grid;place-items:center;position:relative;
+  font-family:var(--serif-en);font-size:13px;font-weight:500;
+  color:var(--t3);cursor:pointer;transition:all .2s;
+}
+.day.pad{opacity:0;pointer-events:none}
+.day.has{
+  background:linear-gradient(145deg,var(--rose),var(--rose-deep));
+  color:#fff;font-weight:600;
+  box-shadow:0 3px 8px rgba(168,118,130,.3),inset 0 1px 0 rgba(255,255,255,.3);
+}
+.day.today{
+  box-shadow:0 0 0 1.5px var(--rose-deep);
+  color:var(--rose-deep);font-weight:700;
+}
+.day.today.has{box-shadow:0 0 0 1.5px var(--gold),0 3px 8px rgba(168,118,130,.3);color:#fff}
+.day.sel{transform:scale(1.12)}
+.day:not(.has):not(.pad):hover{background:rgba(212,165,176,.12)}
+
+/* ===== Section title ===== */
+.sec{display:flex;align-items:baseline;justify-content:space-between;margin:2px 4px 12px}
+.sec-l{display:flex;align-items:baseline;gap:8px}
+.sec-l .en{font-family:var(--serif-en);font-size:19px;font-weight:500;color:var(--t1);font-style:italic;letter-spacing:.4px}
+.sec-l .cn{font-family:var(--serif-cn);font-size:11px;color:var(--t2);letter-spacing:2px}
+.sec-r{font-size:11px;color:var(--t3);letter-spacing:.5px}
+
+/* ===== Diary card flow ===== */
+.entry{
+  background:var(--surface);
+  backdrop-filter:blur(24px) saturate(180%);
+  -webkit-backdrop-filter:blur(24px) saturate(180%);
+  border:1px solid rgba(255,255,255,.85);
+  border-radius:18px;
+  box-shadow:0 5px 18px rgba(180,120,130,.12),inset 0 1px 0 rgba(255,255,255,.9);
+  padding:15px 16px;margin-bottom:12px;position:relative;
+}
+.e-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:9px}
+.e-date{display:flex;align-items:baseline;gap:7px}
+.e-date .d{font-family:var(--serif-en);font-weight:600;font-size:19px;color:var(--rose-deep);line-height:1}
+.e-date .w{font-family:var(--sans-en);font-size:10px;color:var(--t3);letter-spacing:1px}
+.e-tags{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
+.e-tag{
+  font-size:10px;color:var(--rose-deep);
+  padding:2.5px 8px;border-radius:6px;
+  background:rgba(212,165,176,.16);letter-spacing:.5px;
+  font-family:var(--sans-cn);white-space:nowrap;
+}
+.e-tag.custom{background:rgba(201,168,122,.18);color:#9C7C4E}
+.e-txt{
+  font-family:var(--serif-cn);font-weight:500;font-size:14px;
+  line-height:1.85;color:var(--t1);white-space:pre-wrap;
+}
+.e-imgs{display:grid;gap:5px;margin-top:11px}
+.e-imgs.n1{grid-template-columns:1fr}
+.e-imgs.n2{grid-template-columns:1fr 1fr}
+.e-imgs.n3{grid-template-columns:repeat(3,1fr)}
+.e-imgs.n4{grid-template-columns:repeat(4,1fr)}
+.e-img{
+  border-radius:11px;overflow:hidden;position:relative;
+  background-size:cover;background-position:center;
+  border:1px solid rgba(255,255,255,.6);
+  box-shadow:0 3px 10px rgba(180,120,130,.1);
+}
+.e-imgs.n1 .e-img{aspect-ratio:16/10}
+.e-imgs.n2 .e-img,.e-imgs.n3 .e-img,.e-imgs.n4 .e-img{aspect-ratio:1}
+.e-img.g1{background-image:linear-gradient(135deg,#F4C2CE,#E89AAF)}
+.e-img.g2{background-image:linear-gradient(135deg,#F8D9C4,#EBB597)}
+.e-img.g3{background-image:linear-gradient(135deg,#E4C4F0,#C89AD9)}
+.e-img.g4{background-image:linear-gradient(135deg,#F5D0B8,#E9A8D2)}
+.e-img.g5{background-image:linear-gradient(135deg,#D9C8F0,#B89AE0)}
+.e-img.g6{background-image:linear-gradient(135deg,#FCE0E9,#F5B8CA)}
+/* "+N" overlay on the 4th tile when there are more photos */
+.e-more{
+  position:absolute;inset:0;display:grid;place-items:center;
+  background:rgba(90,61,74,.44);backdrop-filter:blur(2px);
+  color:#fff;font-family:var(--serif-en);font-weight:600;font-size:16px;
+  letter-spacing:.5px;
+}
+.e-ops{
+  display:flex;gap:14px;margin-top:11px;padding-top:10px;
+  border-top:.5px dashed var(--pearl);
+}
+.e-ops span{font-size:11px;color:var(--t3);cursor:pointer;letter-spacing:.5px}
+.e-ops span:hover{color:var(--rose-deep)}
+.flow-empty{
+  text-align:center;padding:34px 20px;
+  font-family:var(--serif-cn);font-size:13px;color:var(--t3);line-height:1.9;
+}
+.flow-empty .en{font-family:var(--serif-en);font-style:italic;font-size:15px;color:var(--rose-soft);display:block;margin-bottom:6px}
+/* ===== Mask ===== */
+.mask{position:fixed;inset:0;background:rgba(90,61,74,.34);backdrop-filter:blur(3px);z-index:80;opacity:0;pointer-events:none;transition:opacity .3s}
+.mask.on{opacity:1;pointer-events:auto}
+
+/* ===== Editor (full screen) ===== */
+.editor{
+  position:fixed;inset:0;z-index:85;
+  background:
+    radial-gradient(900px 600px at 15% -10%,#F7D5E0 0%,transparent 55%),
+    radial-gradient(800px 500px at 100% 100%,#F8DDE4 0%,transparent 60%),
+    #FFF6FA;
+  display:flex;flex-direction:column;
+  transform:translateY(100%);transition:transform .34s cubic-bezier(.2,.8,.2,1);
+}
+.editor.on{transform:translateY(0)}
+.ed-inner{max-width:420px;width:100%;margin:0 auto;display:flex;flex-direction:column;height:100%;padding:0 16px}
+.ed-top{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:calc(env(safe-area-inset-top,20px) + 12px) 0 12px;
+}
+.ed-top .cancel{font-size:13.5px;color:var(--t2);cursor:pointer;padding:6px 4px}
+.ed-top .ttl{font-family:var(--serif-en);font-style:italic;font-size:17px;color:var(--t1)}
+.ed-top .save{
+  padding:7px 17px;border-radius:var(--r-pill);border:none;cursor:pointer;
+  background:linear-gradient(135deg,var(--rose),var(--rose-deep));
+  color:#fff;font-size:13px;font-weight:500;font-family:var(--sans-cn);
+  box-shadow:0 3px 10px rgba(168,118,130,.3);
+}
+.ed-date{
+  font-family:var(--serif-en);font-size:12.5px;color:var(--rose-deep);
+  letter-spacing:1.5px;padding:0 2px 12px;
+}
+.ed-body{flex:1;overflow-y:auto;padding-bottom:24px;scrollbar-width:none}
+.ed-body::-webkit-scrollbar{display:none}
+.ed-ta{
+  width:100%;min-height:180px;padding:16px;
+  border-radius:16px;border:1px solid rgba(255,255,255,.85);
+  background:rgba(255,253,254,.8);
+  backdrop-filter:blur(20px) saturate(180%);
+  box-shadow:0 4px 16px rgba(180,120,130,.1),inset 0 1px 0 rgba(255,255,255,.9);
+  font-family:var(--serif-cn);font-size:14.5px;line-height:1.9;color:var(--t1);
+  outline:none;resize:none;
+}
+.ed-ta::placeholder{color:var(--t3);font-size:14px}
+.ed-ta:focus{border-color:rgba(212,165,176,.6)}
+
+/* Image area in editor */
+.ed-lb{
+  font-size:10px;color:var(--t3);letter-spacing:2.5px;
+  font-family:var(--sans-en);font-weight:500;text-transform:uppercase;
+  margin:18px 2px 9px;
+}
+.ed-imgs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.ed-count{font-size:10px;color:var(--t3);letter-spacing:1px;font-family:var(--sans-en);margin-left:6px;text-transform:none}
+.ed-slot{
+  aspect-ratio:1;border-radius:12px;position:relative;overflow:hidden;
+  background-size:cover;background-position:center;cursor:pointer;
+  border:1px solid rgba(255,255,255,.7);
+  box-shadow:0 3px 10px rgba(180,120,130,.1);
+}
+.ed-slot.add{
+  background:rgba(255,255,255,.45);
+  border:1.2px dashed rgba(212,165,176,.55);
+  display:grid;place-items:center;box-shadow:none;
+}
+.ed-slot.add svg{width:20px;height:20px;stroke:var(--t3);stroke-width:1.6;fill:none;stroke-linecap:round}
+.ed-slot .del{
+  position:absolute;top:3px;right:3px;
+  width:19px;height:19px;border-radius:50%;
+  background:rgba(90,61,74,.62);color:#fff;
+  display:grid;place-items:center;font-size:12px;line-height:1;
+  backdrop-filter:blur(6px);
+}
+
+/* Tag chooser in editor */
+.ed-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:2px}
+.ed-tag{
+  padding:6px 13px;border-radius:var(--r-pill);
+  font-size:12px;color:var(--t2);cursor:pointer;
+  border:.5px solid rgba(212,165,176,.4);
+  background:rgba(255,255,255,.55);
+  font-family:var(--sans-cn);transition:all .2s;
+}
+.ed-tag.on{
+  background:linear-gradient(135deg,var(--rose),var(--rose-deep));
+  color:#fff;border-color:transparent;font-weight:500;
+  box-shadow:0 2px 7px rgba(168,118,130,.28);
+}
+.ed-tag.custom-add{color:var(--rose-deep);border-style:dashed}
+.ed-custom{
+  display:none;margin-top:8px;
+}
+.ed-custom.on{display:flex;gap:6px}
+.ed-custom input{
+  flex:1;padding:8px 13px;border-radius:var(--r-pill);
+  border:1px solid var(--pearl);background:rgba(255,255,255,.75);
+  font-size:12.5px;color:var(--t1);outline:none;font-family:var(--sans-cn);
+}
+.ed-custom input:focus{border-color:var(--rose)}
+.ed-custom button{
+  padding:8px 15px;border-radius:var(--r-pill);border:none;cursor:pointer;
+  background:linear-gradient(135deg,var(--rose),var(--rose-deep));
+  color:#fff;font-size:12px;font-family:var(--sans-cn);
+}
+
+/* ===== Confirm dialog（不用系统 confirm —— file:// 或 Safari 屏蔽过一次就永远返回 false） ===== */
+.cfm{position:fixed;inset:0;z-index:96;display:grid;place-items:center;padding:0 34px;opacity:0;pointer-events:none;transition:opacity .24s}
+.cfm.on{opacity:1;pointer-events:auto}
+.cfm-bd{position:absolute;inset:0;background:rgba(90,61,74,.36);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.cfm-box{
+  position:relative;width:100%;max-width:300px;
+  background:rgba(255,253,254,.94);
+  backdrop-filter:blur(30px) saturate(180%);-webkit-backdrop-filter:blur(30px) saturate(180%);
+  border:1px solid rgba(255,255,255,.9);border-radius:22px;
+  box-shadow:0 18px 48px rgba(160,100,110,.28),inset 0 1px 0 rgba(255,255,255,.95);
+  padding:22px 20px 16px;text-align:center;
+  transform:scale(.94);transition:transform .26s cubic-bezier(.2,.8,.2,1);
+}
+.cfm.on .cfm-box{transform:scale(1)}
+.cfm-tx{font-family:var(--serif-cn);font-weight:500;font-size:14.5px;line-height:1.9;color:var(--t1);margin-bottom:18px}
+.cfm-ops{display:flex;gap:9px}
+.cfm-op{flex:1;padding:11px 0;border-radius:var(--r-pill);border:none;cursor:pointer;font-size:13.5px;font-family:var(--sans-cn);letter-spacing:1px}
+.cfm-op.no{background:rgba(255,255,255,.72);color:var(--t2);border:.5px solid var(--pearl)}
+.cfm-op.yes{background:linear-gradient(135deg,var(--rose),var(--rose-deep));color:#fff;font-weight:500;box-shadow:0 4px 13px rgba(168,118,130,.32)}
+.cfm-op:active{transform:scale(.97)}
+/* ===== Toast ===== */
+.toast{
+  position:fixed;left:50%;top:22%;transform:translate(-50%,-8px);z-index:95;
+  padding:10px 18px;border-radius:var(--r-pill);
+  background:rgba(90,61,74,.88);color:#fff;font-size:12.5px;
+  opacity:0;pointer-events:none;transition:all .3s;
+  font-family:var(--sans-cn);letter-spacing:.5px;
+}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+
+/* ===== Tabbar ===== */
+.tabbar-wrap{position:fixed;left:0;right:0;bottom:0;padding:0 12px calc(10px + env(safe-area-inset-bottom));display:flex;justify-content:center;pointer-events:none;z-index:60}
+.tabbar{
+  position:relative;pointer-events:auto;
+  width:100%;max-width:396px;padding:6px 10px;
+  background:rgba(255,253,254,.78);
+  backdrop-filter:blur(40px) saturate(180%);
+  -webkit-backdrop-filter:blur(40px) saturate(180%);
+  border:1px solid rgba(255,255,255,.85);
+  border-radius:var(--r-pill);
+  box-shadow:0 12px 32px rgba(180,120,130,.22),0 2px 6px rgba(180,120,130,.10),inset 0 1px 0 rgba(255,255,255,.9);
+  display:flex;justify-content:space-between;align-items:center;
+}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;padding:2px;color:var(--t3);cursor:pointer;transition:color .2s}
+.tab.on{color:var(--rose-deep)}
+.tab-ic{width:28px;height:24px;display:grid;place-items:center}
+.tab svg{width:21px;height:21px;stroke-linecap:round;stroke-linejoin:round}
+.tab span{font-size:10px;letter-spacing:.5px;font-family:var(--sans-cn);font-weight:500}
+.tab.home{position:relative;flex:0 0 auto;width:60px}
+.tab.home .home-btn{
+  position:absolute;left:50%;top:-22px;transform:translateX(-50%);
+  width:50px;height:50px;border-radius:50%;background:var(--rose);
+  display:grid;place-items:center;color:#fff;
+  box-shadow:0 8px 18px rgba(200,140,150,.42),0 2px 5px rgba(200,140,150,.22),inset 0 1px 0 rgba(255,255,255,.35),inset 0 -2px 4px rgba(140,80,90,.15);
+}
+.tab.home .home-btn svg{width:22px;height:22px;stroke-width:1.8}
+.tab.home span{margin-top:30px;color:var(--rose-deep);font-weight:600}
+</style></head>
+<body>
+<div class="phone">
+<!-- Month header -->
+<div class="mo-head">
+  <div class="mo-nav" id="prevMo">
+    <svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>
+  </div>
+  <div class="mo-title">
+    <span class="y" id="moYear">2026</span>
+    <span class="m" id="moName">August</span>
+    <span class="cn" id="moCn">八月 · 记录</span>
+  </div>
+  <div class="mo-nav" id="nextMo">
+    <svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>
+  </div>
+</div>
+
+<!-- Today entry card — the only entry point for writing -->
+<div class="today-card" id="todayCard">
+  <div class="tc-l">
+    <div class="lb">TODAY</div>
+    <div class="q" id="todayQ">今天你感恩了吗？</div>
+    <div class="hint" id="todayHint">
+      <span>记下一件小事，宇宙都听得见</span>
+    </div>
+  </div>
+  <div class="tc-add">
+    <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+  </div>
+</div>
+
+<!-- Calendar -->
+<div class="cal-card">
+  <div class="wk"><div>S</div><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div></div>
+  <div class="grid" id="calGrid"></div>
+</div>
+
+<!-- Diary flow -->
+<div class="sec">
+  <div class="sec-l">
+    <span class="en">Entries</span>
+    <span class="cn">本月记录</span>
+  </div>
+  <div class="sec-r" id="flowCount"></div>
+</div>
+<div id="flow"></div>
+
+<div style="height:30px"></div>
+
+<!-- Mask -->
+<div class="mask" id="mask"></div>
+
+<!-- Editor -->
+<div class="editor" id="editor">
+  <div class="ed-inner">
+    <div class="ed-top">
+      <span class="cancel" id="edCancel">取消</span>
+      <span class="ttl" id="edTtl">New Entry</span>
+      <button class="save" id="edSave">保存</button>
+    </div>
+    <div class="ed-date" id="edDate"></div>
+    <div class="ed-body">
+      <textarea class="ed-ta" id="edTa" placeholder="今天发生了什么值得记下来的事…&#10;感恩的 · 幸运的 · 显化成真的"></textarea>
+
+      <div class="ed-lb">Photos 图片<span class="ed-count" id="edImgCount"></span></div>
+      <div class="ed-imgs" id="edImgs"></div>
+
+      <div class="ed-lb">Tags 标签</div>
+      <div class="ed-tags" id="edTags"></div>
+      <div class="ed-custom" id="edCustom">
+        <input id="edCustomInput" placeholder="自己写一个标签…"/>
+        <button id="edCustomOk">添加</button>
+      </div>
+
+      <div style="height:40px"></div>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="fileInput" accept="image/*" multiple style="display:none"/>
+<div class="cfm" id="cfm">
+  <div class="cfm-bd" id="cfmBd"></div>
+  <div class="cfm-box">
+    <div class="cfm-tx" id="cfmTx"></div>
+    <div class="cfm-ops">
+      <button class="cfm-op no" id="cfmNo">算了</button>
+      <button class="cfm-op yes" id="cfmYes">确定</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<!-- Tabbar -->
+<div class="tabbar-wrap">
+<nav class="tabbar">
+  <div class="tab"><div class="tab-ic">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65"><path d="M12 3.2c.7 4.5 2.3 6.1 6.8 6.8-4.5.7-6.1 2.3-6.8 6.8-.7-4.5-2.3-6.1-6.8-6.8 4.5-.7 6.1-2.3 6.8-6.8Z"/><path d="M18.5 15.2c.3 2 1 2.7 3 3-2 .3-2.7 1-3 3-.3-2-1-2.7-3-3 2-.3 2.7-1 3-3Z"/></svg>
+  </div><span>肯定语</span></div>
+  <div class="tab on"><div class="tab-ic">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65"><path d="M12 20.2c-1.2-1-7.8-5-7.8-10.5C4.2 6.9 6.1 5 8.7 5c1.5 0 2.7.7 3.3 1.8.6-1.1 1.8-1.8 3.3-1.8 2.6 0 4.5 1.9 4.5 4.7 0 5.5-6.6 9.5-7.8 10.5Z"/></svg>
+  </div><span>感恩</span></div>
+  <div class="tab home">
+    <div class="home-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4.3 10.2 12 4l7.7 6.2v8.1a1.7 1.7 0 0 1-1.7 1.7H6a1.7 1.7 0 0 1-1.7-1.7z"/><path d="M9.3 20v-5.1a2.7 2.7 0 0 1 5.4 0V20"/></svg>
+    </div>
+    <span>首页</span>
+  </div>
+  <div class="tab"><div class="tab-ic">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65"><rect x="5" y="3.5" width="14" height="17" rx="3"/><path d="M8.7 7.6h6.6M8.7 11.2h6.6M8.7 14.8h3.8"/></svg>
+  </div><span>剧本</span></div>
+  <div class="tab"><div class="tab-ic">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65"><circle cx="12" cy="8.2" r="3.6"/><path d="M5.5 20c.4-4 2.7-6.1 6.5-6.1s6.1 2.1 6.5 6.1"/></svg>
+  </div><span>我的</span></div>
+</nav>
+</div>
+</div>
+<script>
+/* ========== Constants ========== */
+const MO_EN = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const MO_CN = ['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
+const WD_EN = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const PRESET_TAGS = ['感恩','幸运','显化成真','心情'];
+const GRADS = ['g1','g2','g3','g4','g5','g6'];
+const FLOW_IMG_MAX = 4;   /* flow cards show at most 4, rest collapse into "+N" */
+
+/* ========== Data ========== */
+/* entries: { 'YYYY-MM-DD': {txt, imgs:[dataURL|{grad}], tags:[]} } */
+const TODAY = new Date();
+function keyOf(y,m,d){return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`}
+const TK = keyOf(TODAY.getFullYear(),TODAY.getMonth(),TODAY.getDate());
+
+/* Demo seed data in current month */
+const entries = {};
+(function seed(){
+  const y = TODAY.getFullYear(), m = TODAY.getMonth();
+  const dd = TODAY.getDate();
+  const mk = (off,txt,tags,imgs)=>{
+    const d = dd - off;
+    if(d < 1) return;
+    entries[keyOf(y,m,d)] = {txt,tags,imgs:imgs||[]};
+  };
+  mk(1,'今天下班路上一路绿灯，走到楼下时天刚好烧成一片粉紫。\n忽然觉得，好像很多事都在悄悄向我靠近。',['幸运','心情'],[{grad:'g3'}]);
+  mk(3,'ta 主动发消息说想我了。\n三个月前写在剧本里的那句话，今天照着实现了。',['显化成真','感恩'],[{grad:'g1'},{grad:'g6'}]);
+  mk(5,'感恩今天遇到的每一个善意：\n便利店阿姨多给了我一颗糖，同事帮我留了最后一份甜品。',['感恩'],[]);
+  mk(8,'翻到去年的照片，发现自己真的变好了很多。\n谢谢那时候没有放弃的我。',['感恩','心情'],[{grad:'g5'},{grad:'g2'},{grad:'g4'},{grad:'g1'},{grad:'g6'},{grad:'g3'},{grad:'g5'}]);
+})();
+
+/* Custom tags user creates */
+const customTags = [];
+
+/* ========== View state ========== */
+let viewY = TODAY.getFullYear();
+let viewM = TODAY.getMonth();
+let editKey = null;      // which date being edited
+let editImgs = [];       // temp images in editor
+let editTags = [];       // temp tags in editor
+
+/* ========== Render: month header ========== */
+function renderHeader(){
+  document.getElementById('moYear').textContent = viewY;
+  document.getElementById('moName').textContent = MO_EN[viewM];
+  document.getElementById('moCn').textContent = MO_CN[viewM] + ' · 记录';
+}
+
+/* ========== Render: today card ========== */
+/* 主问句是固定的，不随内容变；状态只体现在下面那行小字 */
+function renderTodayCard(){
+  const card = document.getElementById('todayCard');
+  const hint = document.getElementById('todayHint');
+  const e = entries[TK];
+  if(e && (e.txt || (e.imgs||[]).length)){
+    card.classList.add('done');
+    hint.innerHTML = '<span>今天已记录 · 点击继续写</span>';
+  } else {
+    card.classList.remove('done');
+    hint.innerHTML = '<span>记下一件小事，宇宙都听得见</span>';
+  }
+}
+
+/* ========== Render: calendar ========== */
+function renderCal(){
+  const grid = document.getElementById('calGrid');
+  grid.innerHTML = '';
+  const firstWd = new Date(viewY,viewM,1).getDay();
+  const days = new Date(viewY,viewM+1,0).getDate();
+  for(let i=0;i<firstWd;i++){
+    const p = document.createElement('div');
+    p.className = 'day pad';
+    grid.appendChild(p);
+  }
+  for(let d=1;d<=days;d++){
+    const k = keyOf(viewY,viewM,d);
+    const cell = document.createElement('div');
+    cell.className = 'day';
+    if(entries[k] && (entries[k].txt || (entries[k].imgs||[]).length)) cell.classList.add('has');
+    if(k === TK) cell.classList.add('today');
+    cell.textContent = d;
+    cell.addEventListener('click',()=>{
+      if(entries[k]){ scrollToEntry(k); }
+      else { openEditor(k); }
+    });
+    grid.appendChild(cell);
+  }
+}
+
+/* ========== Render: diary flow ========== */
+function renderFlow(){
+  const flow = document.getElementById('flow');
+  const cnt = document.getElementById('flowCount');
+  flow.innerHTML = '';
+  const prefix = `${viewY}-${String(viewM+1).padStart(2,'0')}`;
+  const keys = Object.keys(entries)
+    .filter(k => k.startsWith(prefix))
+    .filter(k => entries[k].txt || (entries[k].imgs||[]).length)
+    .sort().reverse();
+  cnt.textContent = keys.length ? keys.length + ' 条' : '';
+  if(!keys.length){
+    flow.innerHTML = '<div class="flow-empty"><span class="en">Nothing yet.</span>这个月还没有记录<br>点右下角写下第一条</div>';
+    return;
+  }
+  keys.forEach(k=>{
+    const e = entries[k];
+    const [Y,M,D] = k.split('-').map(Number);
+    const wd = WD_EN[new Date(Y,M-1,D).getDay()];
+    const card = document.createElement('div');
+    card.className = 'entry';
+    card.id = 'e-' + k;
+    const tagHtml = (e.tags||[]).map(t=>{
+      const isCustom = !PRESET_TAGS.includes(t);
+      return `<span class="e-tag${isCustom?' custom':''}">${t}</span>`;
+    }).join('');
+    const imgs = e.imgs||[];
+    let imgHtml = '';
+    if(imgs.length){
+      const n = Math.min(imgs.length,4);
+      const extra = imgs.length - 4;
+      imgHtml = `<div class="e-imgs n${n}">` + imgs.slice(0,4).map((im,i)=>{
+        const more = (extra > 0 && i === 3) ? `<span class="e-more">+${extra}</span>` : '';
+        if(im && im.grad) return `<div class="e-img ${im.grad}">${more}</div>`;
+        return `<div class="e-img" style="background-image:url(${im})">${more}</div>`;
+      }).join('') + '</div>';
+    }
+    card.innerHTML = `
+      <div class="e-head">
+        <div class="e-date"><span class="d">${String(D).padStart(2,'0')}</span><span class="w">${wd}</span></div>
+        <div class="e-tags">${tagHtml}</div>
+      </div>
+      <div class="e-txt">${escapeHtml(e.txt||'')}</div>
+      ${imgHtml}
+      <div class="e-ops">
+        <span data-act="edit" data-k="${k}">编辑</span>
+        <span data-act="del" data-k="${k}">删除</span>
+      </div>
+    `;
+    flow.appendChild(card);
+  });
+  flow.querySelectorAll('[data-act]').forEach(el=>{
+    el.addEventListener('click',()=>{
+      const k = el.dataset.k;
+      if(el.dataset.act === 'edit') openEditor(k);
+      else {
+        ask('删除这条记录？写过的字和图会一起消失。',()=>{
+          delete entries[k];
+          renderAll();
+          showToast('已删除');
+        });
+      }
+    });
+  });
+}
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function scrollToEntry(k){
+  const el = document.getElementById('e-'+k);
+  if(el){
+    el.scrollIntoView({behavior:'smooth',block:'center'});
+    el.style.transition = 'box-shadow .4s';
+    el.style.boxShadow = '0 0 0 1.5px var(--rose), 0 8px 24px rgba(180,120,130,.2)';
+    setTimeout(()=>{el.style.boxShadow=''},1400);
+  }
+}
+
+function renderAll(){
+  renderHeader();
+  renderTodayCard();
+  renderCal();
+  renderFlow();
+}
+/* ========== Editor ========== */
+const editor = document.getElementById('editor');
+const mask = document.getElementById('mask');
+const edTa = document.getElementById('edTa');
+const fileInput = document.getElementById('fileInput');
+
+function openEditor(k){
+  editKey = k || TK;
+  const e = entries[editKey];
+  editImgs = e ? [...(e.imgs||[])] : [];
+  editTags = e ? [...(e.tags||[])] : [];
+  edTa.value = e ? (e.txt||'') : '';
+
+  const [Y,M,D] = editKey.split('-').map(Number);
+  const wd = WD_EN[new Date(Y,M-1,D).getDay()];
+  document.getElementById('edDate').textContent = `${MO_EN[M-1]} ${D}, ${Y} · ${wd}`;
+  document.getElementById('edTtl').textContent = e ? 'Edit Entry' : 'New Entry';
+
+  renderEdImgs();
+  renderEdTags();
+  document.getElementById('edCustom').classList.remove('on');
+  editor.classList.add('on');
+  setTimeout(()=>edTa.focus(),320);
+}
+function closeEditor(){
+  editor.classList.remove('on');
+  editKey = null;
+}
+function saveEditor(){
+  const txt = edTa.value.trim();
+  if(!txt && !editImgs.length){
+    showToast('写点什么或加张图吧');
+    return;
+  }
+  entries[editKey] = {txt, imgs:[...editImgs], tags:[...editTags]};
+  const k = editKey;
+  closeEditor();
+  renderAll();
+  showToast('已保存');
+  setTimeout(()=>scrollToEntry(k),380);
+}
+document.getElementById('edCancel').addEventListener('click',closeEditor);
+document.getElementById('edSave').addEventListener('click',saveEditor);
+document.getElementById('todayCard').addEventListener('click',()=>openEditor(TK));
+
+/* Editor images — unlimited, wraps to new rows */
+function renderEdImgs(){
+  const wrap = document.getElementById('edImgs');
+  wrap.innerHTML = '';
+  editImgs.forEach((im,i)=>{
+    const s = document.createElement('div');
+    s.className = 'ed-slot';
+    if(im && im.grad){ s.classList.add(im.grad); s.style.backgroundImage = getGradCss(im.grad); }
+    else { s.style.backgroundImage = `url(${im})`; }
+    s.innerHTML = '<div class="del">×</div>';
+    s.querySelector('.del').addEventListener('click',(ev)=>{
+      ev.stopPropagation();
+      editImgs.splice(i,1);
+      renderEdImgs();
+    });
+    wrap.appendChild(s);
+  });
+  const add = document.createElement('div');
+  add.className = 'ed-slot add';
+  add.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>';
+  add.addEventListener('click',()=>fileInput.click());
+  wrap.appendChild(add);
+  document.getElementById('edImgCount').textContent = editImgs.length ? editImgs.length + ' 张' : '';
+}
+function getGradCss(g){
+  const map = {
+    g1:'linear-gradient(135deg,#F4C2CE,#E89AAF)',
+    g2:'linear-gradient(135deg,#F8D9C4,#EBB597)',
+    g3:'linear-gradient(135deg,#E4C4F0,#C89AD9)',
+    g4:'linear-gradient(135deg,#F5D0B8,#E9A8D2)',
+    g5:'linear-gradient(135deg,#D9C8F0,#B89AE0)',
+    g6:'linear-gradient(135deg,#FCE0E9,#F5B8CA)'
+  };
+  return map[g] || map.g1;
+}
+fileInput.addEventListener('change',(e)=>{
+  const files = Array.from(e.target.files || []);
+  if(!files.length) return;
+  let pending = files.length;
+  files.forEach(file=>{
+    const reader = new FileReader();
+    reader.onload = (ev)=>{
+      editImgs.push(ev.target.result);
+      if(--pending === 0){ renderEdImgs(); showToast('已添加 ' + files.length + ' 张'); }
+    };
+    reader.onerror = ()=>{ if(--pending === 0) renderEdImgs(); };
+    reader.readAsDataURL(file);
+  });
+  fileInput.value = '';
+});
+
+/* Editor tags */
+function renderEdTags(){
+  const wrap = document.getElementById('edTags');
+  wrap.innerHTML = '';
+  const all = [...PRESET_TAGS, ...customTags];
+  all.forEach(t=>{
+    const el = document.createElement('div');
+    el.className = 'ed-tag' + (editTags.includes(t) ? ' on' : '');
+    el.textContent = t;
+    el.addEventListener('click',()=>{
+      const i = editTags.indexOf(t);
+      if(i >= 0) editTags.splice(i,1);
+      else editTags.push(t);
+      renderEdTags();
+    });
+    wrap.appendChild(el);
+  });
+  const add = document.createElement('div');
+  add.className = 'ed-tag custom-add';
+  add.textContent = '+ 自定义';
+  add.addEventListener('click',()=>{
+    const c = document.getElementById('edCustom');
+    c.classList.toggle('on');
+    if(c.classList.contains('on')) setTimeout(()=>document.getElementById('edCustomInput').focus(),100);
+  });
+  wrap.appendChild(add);
+}
+function addCustomTag(){
+  const inp = document.getElementById('edCustomInput');
+  const v = inp.value.trim();
+  if(!v) return;
+  if(!customTags.includes(v) && !PRESET_TAGS.includes(v)) customTags.push(v);
+  if(!editTags.includes(v)) editTags.push(v);
+  inp.value = '';
+  document.getElementById('edCustom').classList.remove('on');
+  renderEdTags();
+}
+document.getElementById('edCustomOk').addEventListener('click',addCustomTag);
+document.getElementById('edCustomInput').addEventListener('keydown',e=>{
+  if(e.key === 'Enter'){ e.preventDefault(); addCustomTag(); }
+});
+
+/* ========== Month nav ========== */
+document.getElementById('prevMo').addEventListener('click',()=>{
+  viewM--;
+  if(viewM < 0){ viewM = 11; viewY--; }
+  renderAll();
+});
+document.getElementById('nextMo').addEventListener('click',()=>{
+  viewM++;
+  if(viewM > 11){ viewM = 0; viewY++; }
+  renderAll();
+});
+
+/* ========== Confirm ==========
+   自己画的确认框。系统 confirm 被浏览器"阻止此页面弹出对话框"勾掉一次之后就永远返回
+   false —— 按钮看着能点，点了什么都不发生，跟坏了一样。 */
+const cfm = document.getElementById('cfm');
+let cfmCb = null;
+function ask(text, onYes){
+  document.getElementById('cfmTx').textContent = text;
+  cfmCb = onYes;
+  cfm.classList.add('on');
+}
+function cfmClose(){ cfm.classList.remove('on'); cfmCb = null; }
+document.getElementById('cfmNo').addEventListener('click',cfmClose);
+document.getElementById('cfmBd').addEventListener('click',cfmClose);
+document.getElementById('cfmYes').addEventListener('click',()=>{
+  const cb = cfmCb; cfmClose(); if(cb) cb();
+});
+/* ========== Toast ========== */
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('on');
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(()=>t.classList.remove('on'), 1700);
+}
+
+/* ========== Init ========== */
+renderAll();
+/* ========== Misc bindings ========== */
+mask.addEventListener('click',closeEditor);
+document.addEventListener('keydown',e=>{
+  if(e.key === 'Escape' && editor.classList.contains('on')) closeEditor();
+});
+</script>
+<script>
+/* PWA —— 装到桌面用。file:// 下不注册（协议不支持），只在 http/https 生效 */
+if("serviceWorker" in navigator && location.protocol.startsWith("http")){
+  window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
+}
+</script>
+</body></html>
