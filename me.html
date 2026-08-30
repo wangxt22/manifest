@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Reverie">
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
-<title>Reverie · Me</title>
+<title>我的 · Reverie</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500;600&family=Noto+Serif+SC:wght@500;600;700&display=swap" rel="stylesheet">
@@ -38,15 +38,16 @@
   --r-pill:999px;
   --shadow-card:0 6px 24px rgba(180,120,130,.14),inset 0 1px 0 rgba(255,255,255,.9);
 }
-html,body{height:100%}
+html{height:100%}
 body{
   font-family:var(--sans-cn);color:var(--t1);font-size:15px;
   background-color:#FFF3F7;
   background-image:var(--bg-image),var(--bg-gradient);
   background-size:cover;background-position:center;
   background-attachment:fixed;background-repeat:no-repeat;
-  min-height:100vh;overflow-x:hidden;
-  padding-bottom:100px;
+  min-height:100%;overflow-x:hidden;
+  /* 底 tabbar 是 fixed 的，首页那个球还往上凸 22px —— 留够，别让内容被压在底下 */
+  padding-bottom:calc(118px + env(safe-area-inset-bottom));
 }
 .phone{max-width:420px;margin:0 auto;position:relative;padding:0 14px;padding-top:calc(env(safe-area-inset-top,20px) + 14px)}
 /* Cormorant 老式数字会把 1 写成小写 i */

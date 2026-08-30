@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Reverie">
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
-<title>Reverie · Affirmation</title>
+<title>肯定语 · Reverie</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Inter:wght@400;500;600&family=Noto+Serif+SC:wght@500;600;700&display=swap" rel="stylesheet">
@@ -43,15 +43,16 @@
 .center-idle .big,.center-running .big,.center-running .small,.stat-line,.stat-line *,.dur .d{
   font-variant-numeric:lining-nums;font-feature-settings:"lnum" 1,"onum" 0;
 }
-html,body{height:100%}
+html{height:100%}
 body{
   font-family:var(--sans-cn);color:var(--t1);font-size:15px;
   background-color:#FFF3F7;
   background-image:var(--bg-image),var(--bg-gradient);
   background-size:cover;background-position:center;
   background-attachment:fixed;background-repeat:no-repeat;
-  min-height:100vh;overflow-x:hidden;
-  padding-bottom:90px;
+  min-height:100%;overflow-x:hidden;
+  /* 底 tabbar 是 fixed 的，首页那个球还往上凸 22px —— 留够，别让内容被压在底下 */
+  padding-bottom:calc(118px + env(safe-area-inset-bottom));
 }
 .phone{max-width:420px;margin:0 auto;position:relative;padding:0 14px;padding-top:calc(env(safe-area-inset-top,20px) + 8px)}
 
@@ -466,19 +467,19 @@ body{
   <div class="tab on"><div class="tab-ic">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65"><path d="M12 3.2c.7 4.5 2.3 6.1 6.8 6.8-4.5.7-6.1 2.3-6.8 6.8-.7-4.5-2.3-6.1-6.8-6.8 4.5-.7 6.1-2.3 6.8-6.8Z"/><path d="M18.5 15.2c.3 2 1 2.7 3 3-2 .3-2.7 1-3 3-.3-2-1-2.7-3-3 2-.3 2.7-1 3-3Z"/></svg>
   </div><span>肯定语</span></div>
-  <div class="tab"><div class="tab-ic">
+  <div class="tab" onclick="location.href='gratitude.html'"><div class="tab-ic">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65"><path d="M12 20.2c-1.2-1-7.8-5-7.8-10.5C4.2 6.9 6.1 5 8.7 5c1.5 0 2.7.7 3.3 1.8.6-1.1 1.8-1.8 3.3-1.8 2.6 0 4.5 1.9 4.5 4.7 0 5.5-6.6 9.5-7.8 10.5Z"/></svg>
   </div><span>感恩</span></div>
-  <div class="tab home">
+  <div class="tab home" onclick="location.href='home.html'">
     <div class="home-btn">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4.3 10.2 12 4l7.7 6.2v8.1a1.7 1.7 0 0 1-1.7 1.7H6a1.7 1.7 0 0 1-1.7-1.7z"/><path d="M9.3 20v-5.1a2.7 2.7 0 0 1 5.4 0V20"/></svg>
     </div>
     <span>首页</span>
   </div>
-  <div class="tab"><div class="tab-ic">
+  <div class="tab" onclick="location.href='script.html'"><div class="tab-ic">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65"><rect x="5" y="3.5" width="14" height="17" rx="3"/><path d="M8.7 7.6h6.6M8.7 11.2h6.6M8.7 14.8h3.8"/></svg>
   </div><span>剧本</span></div>
-  <div class="tab"><div class="tab-ic">
+  <div class="tab" onclick="location.href='me.html'"><div class="tab-ic">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65"><circle cx="12" cy="8.2" r="3.6"/><path d="M5.5 20c.4-4 2.7-6.1 6.5-6.1s6.1 2.1 6.5 6.1"/></svg>
   </div><span>我的</span></div>
 </nav>
@@ -521,18 +522,22 @@ function buildBoardTiles(tab){
   let items = []; // {kind:'img'|'grad'|'empty', img?, color?, key?, idx?}
 
   if(tab === 'immerse'){
-    // 沉浸念: use selected boards' first images (or gradients)
+    /* 沉浸念：把清单涉及到的板块里传过的图**全部**摊出来，最多铺 6 格。
+       以前是 used[i%used.length] 再取 images[0] —— 板块少于 6 个就会把同一张图循环铺好几遍，
+       只传一张的话六格里能看见三张一样的。图不够就用不重样的渐变补位。 */
     const used = [...new Set(reciteList.map(l=>l.from).filter(Boolean))];
-    if(used.length){
-      for(let i=0;i<6;i++){
-        const key = used[i%used.length];
-        const b = BOARDS[key];
-        const img = b.images && b.images[0];
-        if(img) items.push({kind:'img',img,readonly:true});
-        else items.push({kind:'grad',color:b.color,readonly:true});
-      }
-    } else {
-      ['g1','g2','g3','g4','g5','g6'].forEach(c=>items.push({kind:'grad',color:c,readonly:true}));
+    const pics = [];
+    used.forEach(key=>{
+      const b = BOARDS[key];
+      if(!b || !b.images) return;
+      b.images.forEach(img=>{
+        if(img && !pics.includes(img)) pics.push(img);
+      });
+    });
+    const PAL = ['g1','g2','g3','g4','g5','g6'];
+    for(let i=0;i<6;i++){
+      if(i < pics.length) items.push({kind:'img',img:pics[i],readonly:true});
+      else items.push({kind:'grad',color:PAL[i],readonly:true});
     }
   } else if(BOARDS[tab]){
     const b = BOARDS[tab];
