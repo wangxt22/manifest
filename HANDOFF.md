@@ -24,7 +24,7 @@
 | 文档 | 内容 | 是否上线 |
 |---|---|---|
 | **HANDOFF.md** | 本文件。交接入口、当前进度、下一步 | 上线（无敏感信息） |
-| **DESIGN.md** | 设计与实现文档。设计系统（色彩/字体/毛玻璃配方）、每个页面的功能决策、**28 条踩过的坑**、数据结构、用户核心规则 | ❌ gitignore，只在本地 |
+| **DESIGN.md** | 设计与实现文档。设计系统（色彩/字体/毛玻璃配方）、每个页面的功能决策、**28 条踩过的坑**、数据结构、用户核心规则 | 上线（仓库是 public，这份也公开） |
 | **CONVERSATION-LOG.md** | 2026-07-30 ~ 08-31 的全部用户原话（281 条，已脱敏），含话题分期索引和关键决策摘录 | ❌ gitignore，只在本地 |
 | **README.md** | 尚未写 | — |
 
@@ -46,7 +46,7 @@ tryon/                          ← git 仓库就在这一层
 ├── sw.js                       service worker
 ├── icons/                      icon-192 / icon-512 / apple-touch-icon(180)
 ├── covers/                     ⚠️ 空的，等 8 张剧本封面（竖版 3:4）
-└── .gitignore                  屏蔽 *.png / mockup / DESIGN.md / CONVERSATION-LOG.md
+└── .gitignore                  屏蔽 *.png / mockup / CONVERSATION-LOG.md
 ```
 
 **⚠️ 绝对不要在父目录 `comate-zulu-demo/` 执行 `git init`** —— 父目录 542M，且含 `.env` 和 `ai.py`（中转 API 配置）。git 仓库刻意只建在 `tryon/` 这一层。
